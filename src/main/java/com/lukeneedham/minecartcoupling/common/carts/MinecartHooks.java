@@ -206,16 +206,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
             cart.rotationYaw = cart.rotationYaw % 360.0F;
         }
 
-
-//        if (SeasonPlugin.isGhostTrain(cart)) {
-//            cart.setGlowing(true);
-//            data.setBoolean("ghost", true);
-//        } else
-        if (data.getBoolean("ghost")) {
-            cart.setGlowing(false);
-            data.setBoolean("ghost", false);
-        }
-
         Block block = WorldPlugin.getBlock(cart.world, event.getPos());
         int launched = data.getInteger("Launched");
         if (TrackTools.isRailBlock(block)) {

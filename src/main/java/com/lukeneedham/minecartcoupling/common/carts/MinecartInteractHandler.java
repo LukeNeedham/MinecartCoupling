@@ -67,6 +67,8 @@ public class MinecartInteractHandler {
         coupleCart(event.getPlayer(), itemStack, minecart);
     }
 
+    // TODO: Instead of printing in chat, indicate these states to the user graphically, with a string entity:
+    // See net.minecraft.entity.EntityLeadKnot and net.minecraft.client.renderer.entity.RenderLeashKnot
     private static void coupleCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
         EntityMinecart last = couplingInProgessMap.remove(player);
 
