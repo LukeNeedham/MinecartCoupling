@@ -59,11 +59,11 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
             return;
 
         ICouplingManager lm = CouplingManager.INSTANCE;
-        EntityMinecart link = lm.getLinkedCartA(cart);
-        if (link != null && (link == other || link.isPassenger(other)))
+        EntityMinecart coupledCartA = lm.getCoupledCartA(cart);
+        if (coupledCartA != null && (coupledCartA == other || coupledCartA.isPassenger(other)))
             return;
-        link = lm.getLinkedCartB(cart);
-        if (link != null && (link == other || link.isPassenger(other)))
+        EntityMinecart coupledCartB = lm.getCoupledCartB(cart);
+        if (coupledCartB != null && (coupledCartB == other || coupledCartB.isPassenger(other)))
             return;
 
         boolean isLiving = other instanceof EntityLivingBase;
@@ -239,14 +239,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
         cart.motionX = Math.copySign(Math.min(Math.abs(cart.motionX), 9.5), cart.motionX);
         cart.motionY = Math.copySign(Math.min(Math.abs(cart.motionY), 9.5), cart.motionY);
         cart.motionZ = Math.copySign(Math.min(Math.abs(cart.motionZ), 9.5), cart.motionZ);
-
-//        List<EntityLivingBase> entities = cart.world.getEntitiesWithinAABB(EntityLivingBase.class, getMinecartCollisionBox(cart).grow(COLLISION_EXPANSION));
-//
-//        for (EntityLivingBase entity : entities) {
-//            if (!cart.isPassenger(entity) && entity.canBePushed()) {
-//                cart.applyEntityCollision(entity);
-//            }
-//        }
     }
 
     @SubscribeEvent
@@ -258,12 +250,12 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
 
     @Override
     public void onEntityRemoved(Entity entityIn) {
-        // Fix links for killed carts
+        // Fix couplings for killed carts
         // Unloaded entities are not "isDead"
         if (Game.isHost(entityIn.world) && !entityIn.isEntityAlive() && entityIn instanceof EntityMinecart) {
             // We only mark Trains for deletion here, this event seems to be called from outside the server thread.
             Train.get(((EntityMinecart) entityIn)).ifPresent(Train::kill);
-            CouplingManager.INSTANCE.breakLinks((EntityMinecart) entityIn);
+            CouplingManager.INSTANCE.breakCouplings((EntityMinecart) entityIn);
         }
     }
 

@@ -183,14 +183,14 @@ public final class Train implements Iterable<EntityMinecart> {
         addTrainTag(next);
 
         CouplingManager lm = CouplingManager.INSTANCE;
-        EntityMinecart linkA = lm.getLinkedCartA(next);
-        EntityMinecart linkB = lm.getLinkedCartB(next);
+        EntityMinecart coupledCartA = lm.getCoupledCartA(next);
+        EntityMinecart coupledCartB = lm.getCoupledCartB(next);
 
-        if (linkA != null && linkA != prev && !contains(linkA))
-            rebuild(next, linkA);
+        if (coupledCartA != null && coupledCartA != prev && !contains(coupledCartA))
+            rebuild(next, coupledCartA);
 
-        if (linkB != null && linkB != prev && !contains(linkB))
-            rebuild(next, linkB);
+        if (coupledCartB != null && coupledCartB != prev && !contains(coupledCartB))
+            rebuild(next, coupledCartB);
     }
 
     private boolean isInvalid() {

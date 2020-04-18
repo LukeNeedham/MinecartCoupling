@@ -14,28 +14,27 @@ import net.minecraft.entity.item.EntityMinecart;
 import net.minecraftforge.event.entity.minecart.MinecartUpdateEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-public final class LinkageHandler {
-    public static final String LINK_A_TIMER = "linkA_timer";
-    public static final String LINK_B_TIMER = "linkB_timer";
-    public static final double LINK_DRAG = 0.95;
+public final class CouplingHandler {
+    public static final String COUPLING_A_TIMER = "couplingA_timer";
+    public static final String COUPLING_B_TIMER = "couplingB_timer";
+    public static final double COUPLED_DRAG = 0.95;
     public static final float MAX_DISTANCE = 8F;
     private static final float STIFFNESS = 0.7F;
     private static final float DAMPING = 0.4F;
     private static final float FORCE_LIMITER = 6F;
-    private static LinkageHandler instance;
+    private static CouplingHandler instance;
 
-    private LinkageHandler() {
+    private CouplingHandler() {
     }
 
-    public static LinkageHandler getInstance() {
+    public static CouplingHandler getInstance() {
         if (instance == null)
-            instance = new LinkageHandler();
+            instance = new CouplingHandler();
         return instance;
     }
 
     /**
-     * Returns the optimal distance between two linked carts that the
-     * LinkageHandler will attempt to maintain at all times.
+     * Returns the optimal distance between two coupled carts that should ideally be maintained at all times.
      *
      * @return The optimal distance
      */
@@ -55,16 +54,16 @@ public final class LinkageHandler {
      * @param cart1 EntityMinecart
      * @param cart2 EntityMinecart
      */
-    protected void adjustVelocity(EntityMinecart cart1, EntityMinecart cart2, CouplingManager.CouplingType couplingType) {
-        String timer = LINK_A_TIMER;
-        if (couplingType == CouplingManager.CouplingType.LINK_B)
-            timer = LINK_B_TIMER;
+    protected void adjustVelocity(EntityMinecart cart1, EntityMinecart cart2, CouplingType couplingType) {
+        String timer = COUPLING_A_TIMER;
+        if (couplingType == CouplingType.COUPLING_B)
+            timer = COUPLING_B_TIMER;
         if (cart1.world.provider.getDimension() != cart2.world.provider.getDimension()) {
             short count = cart1.getEntityData().getShort(timer);
             count++;
             if (count > 200) {
                 CouplingManager.INSTANCE.breakCoupling(cart1, cart2);
-                CouplingManager.printDebug("Reason For Broken Link: Carts in different dimensions.");
+                CouplingManager.printDebug("Reason For Broken Coupling: Carts in different dimensions.");
             }
             cart1.getEntityData().setShort(timer, count);
             return;
@@ -74,7 +73,7 @@ public final class LinkageHandler {
         double dist = cart1.getDistance(cart2);
         if (dist > MAX_DISTANCE) {
             CouplingManager.INSTANCE.breakCoupling(cart1, cart2);
-            CouplingManager.printDebug("Reason For Broken Link: Max distance exceeded.");
+            CouplingManager.printDebug("Reason For Broken Coupling: Max distance exceeded.");
             return;
         }
 
@@ -160,7 +159,7 @@ public final class LinkageHandler {
     }
 
     /**
-     * This function inspects the links and determines if any physics
+     * This function inspects the couplings and determines if any physics
      * adjustments need to be made.
      *
      * @param cart EntityMinecart
@@ -169,14 +168,14 @@ public final class LinkageHandler {
         if (isLaunched(cart))
             return;
 
-        boolean linkedA = adjustLinkedCart(cart, CouplingManager.CouplingType.LINK_A);
-        boolean linkedB = adjustLinkedCart(cart, CouplingManager.CouplingType.LINK_B);
-        boolean linked = linkedA || linkedB;
+        boolean coupledA = adjustCoupledCart(cart, CouplingType.COUPLING_A);
+        boolean coupledB = adjustCoupledCart(cart, CouplingType.COUPLING_B);
+        boolean coupled = coupledA || coupledB;
 
         // Drag
-        if (linked) {
-            cart.motionX *= LINK_DRAG;
-            cart.motionZ *= LINK_DRAG;
+        if (coupled) {
+            cart.motionX *= COUPLED_DRAG;
+            cart.motionZ *= COUPLED_DRAG;
         }
 
         // Speed & End Drag
@@ -188,21 +187,21 @@ public final class LinkageHandler {
 
     }
 
-    private boolean adjustLinkedCart(EntityMinecart cart, CouplingManager.CouplingType couplingType) {
-        boolean linked = false;
+    private boolean adjustCoupledCart(EntityMinecart cart, CouplingType couplingType) {
+        boolean coupled = false;
         CouplingManager lm = CouplingManager.INSTANCE;
-        EntityMinecart link = lm.getLinkedCart(cart, couplingType);
-        if (link != null) {
-            // sanity check to ensure links are consistent
-            if (!lm.areLinked(cart, link)) {
-                lm.repairLink(cart, link);
+        EntityMinecart coupledCart = lm.getCoupledCart(cart, couplingType);
+        if (coupledCart != null) {
+            // sanity check to ensure couplings are consistent
+            if (!lm.areCoupled(cart, coupledCart)) {
+                lm.repairCoupling(cart, coupledCart);
             }
-            if (!isLaunched(link) && !isOnElevator()) {
-                linked = true;
-                adjustVelocity(cart, link, couplingType);
+            if (!isLaunched(coupledCart) && !isOnElevator()) {
+                coupled = true;
+                adjustVelocity(cart, coupledCart, couplingType);
             }
         }
-        return linked;
+        return coupled;
     }
 
     /**
@@ -225,14 +224,4 @@ public final class LinkageHandler {
     public boolean isOnElevator() {
         return false;
     }
-
-//    @SubscribeEvent
-//    public void canMinecartTick(EntityEvent.CanUpdate event) {
-//        if (event.getEntity() instanceof EntityMinecart) {
-//            EntityMinecart cart = (EntityMinecart) event.getEntity();
-//            if (Train.streamCarts(cart).flatMap(Streams.toType(EntityCartWorldspike.class)).anyMatch(EntityCartWorldspike::hasActiveTicket)) {
-//                event.setCanUpdate(true);
-//            }
-//        }
-//    }
 }

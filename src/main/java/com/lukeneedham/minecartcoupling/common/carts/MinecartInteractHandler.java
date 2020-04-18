@@ -14,7 +14,6 @@ import net.minecraftforge.event.entity.minecart.MinecartInteractEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.apache.logging.log4j.Level;
 
 import java.util.Map;
 
@@ -26,9 +25,9 @@ public class MinecartInteractHandler {
     @SubscribeEvent
     public static void onMinecartHit(AttackEntityEvent event) {
 
-        if (!event.getEntity().world.isRemote) {
-            return;
-        }
+//        if (!event.getEntity().world.isRemote) {
+//            return;
+//        }
 
         Entity target = event.getTarget();
         if (!(target instanceof EntityMinecart)) {
@@ -37,16 +36,14 @@ public class MinecartInteractHandler {
         EntityMinecart minecart = (EntityMinecart) target;
         CouplingManager lm = CouplingManager.INSTANCE;
 
-        EntityMinecart coupledCartA = lm.getLinkedCartA(minecart);
-        EntityMinecart coupledCartB = lm.getLinkedCartB(minecart);
+        EntityMinecart coupledCartA = lm.getCoupledCartA(minecart);
+        EntityMinecart coupledCartB = lm.getCoupledCartB(minecart);
 
         if (coupledCartA != null) {
-            event.getEntityPlayer().sendMessage(new TextComponentString("Minecart hit " + coupledCartA.toString()));
             lm.breakCoupling(minecart, coupledCartA);
             minecart.dropItem(Items.STRING, 1);
         }
         if (coupledCartB != null) {
-            event.getEntityPlayer().sendMessage(new TextComponentString("Minecart hit " + coupledCartB.toString()));
             lm.breakCoupling(minecart, coupledCartB);
             minecart.dropItem(Items.STRING, 1);
         }
@@ -67,22 +64,22 @@ public class MinecartInteractHandler {
         }
         event.setCanceled(true);
         EntityMinecart minecart = event.getMinecart();
-        linkCart(event.getPlayer(), itemStack, minecart);
+        coupleCart(event.getPlayer(), itemStack, minecart);
     }
 
-    private static void linkCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
+    private static void coupleCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
         EntityMinecart last = couplingInProgessMap.remove(player);
 
         if (last != null && last.isEntityAlive()) {
             CouplingManager lm = CouplingManager.INSTANCE;
             boolean used;
-            if (lm.areLinked(cart, last, false)) {
+            if (lm.areCoupled(cart, last, false)) {
                 lm.breakCoupling(cart, last);
                 used = true;
                 player.sendMessage(new TextComponentString("Coupling broken"));
                 cart.dropItem(Items.STRING, 1);
             } else {
-                used = lm.createLink(last, cart);
+                used = lm.createCoupling(last, cart);
                 if (used) {
                     player.sendMessage(new TextComponentString("Coupling created"));
                     InvTools.depleteItem(stringStack);

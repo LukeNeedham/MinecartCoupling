@@ -13,81 +13,80 @@ import org.jetbrains.annotations.Nullable;
 import java.util.stream.Stream;
 
 /**
- * The LinkageManager contains all the functions needed to link and interact
- * with linked carts.
+ * Contains all the functions needed to couple and interact with coupled carts.
  * <p/>
- * Each cart can up to two links. They are called Link A and Link B.
+ * Each cart can up to two couplings: A and B.
  *
  * @author CovertJaguar <http://www.railcraft.info>
  */
 public interface ICouplingManager {
 
     /**
-     * The default max distance at which carts can be linked, divided by 2.
+     * The default max distance at which carts can be coupled, divided by 2.
      */
     float COUPLABLE_DISTANCE = 1.25f;
     /**
-     * The default distance at which linked carts are maintained, divided by 2.
+     * The default distance at which coupled carts are maintained, divided by 2.
      */
     float OPTIMAL_DISTANCE = 0.665f;
 
     /**
-     * Creates a link between two carts, but only if there is nothing preventing
-     * such a link.
+     * Creates a coupling between two carts, but only if there is nothing preventing
+     * such a coupling.
      *
-     * @return True if the link succeeded.
+     * @return true if the coupling succeeded.
      */
-    default boolean createLink(EntityMinecart cart1, EntityMinecart cart2) {
+    default boolean createCoupling(EntityMinecart cart1, EntityMinecart cart2) {
         return false;
     }
 
-    default boolean hasFreeLink(EntityMinecart cart) {
+    default boolean hasFreeCoupling(EntityMinecart cart) {
         return false;
     }
 
     /**
-     * Returns the cart linked to Link A or null if nothing is currently
-     * occupying Link A.
+     * Returns the cart coupled to LiConk A or null if nothing is currently
+     * occupying coupling A.
      *
-     * @param cart The cart for which to get the link
-     * @return The linked cart or null
+     * @param cart The cart for which to get the coupling
+     * @return The coupled cart or null
      */
     default @Nullable
-    EntityMinecart getLinkedCartA(EntityMinecart cart) {
+    EntityMinecart getCoupledCartA(EntityMinecart cart) {
         return null;
     }
 
     /**
-     * Returns the cart linked to Link B or null if nothing is currently
-     * occupying Link B.
+     * Returns the cart coupled to coupling B or null if nothing is currently
+     * occupying coupling B.
      *
-     * @param cart The cart for which to get the link
-     * @return The linked cart or null
+     * @param cart The cart for which to get the coupling
+     * @return The coupled cart or null
      */
     default @Nullable
-    EntityMinecart getLinkedCartB(EntityMinecart cart) {
+    EntityMinecart getCoupledCartB(EntityMinecart cart) {
         return null;
     }
 
     /**
-     * Returns true if the two carts are linked to each other.
+     * Returns true if the two carts are coupled to each other.
      *
-     * @return True if linked
+     * @return True if coupled
      */
-    default boolean areLinked(EntityMinecart cart1, EntityMinecart cart2) {
+    default boolean areCoupled(EntityMinecart cart1, EntityMinecart cart2) {
         return false;
     }
 
     /**
-     * Breaks a link between two carts, if any link exists.
+     * Breaks a coupling between two carts, if any coupling exists.
      */
     default void breakCoupling(EntityMinecart cart1, EntityMinecart cart2) {
     }
 
     /**
-     * Breaks all links the cart has.
+     * Breaks all couplings the cart has.
      */
-    default void breakLinks(EntityMinecart cart) {
+    default void breakCouplings(EntityMinecart cart) {
     }
 
     /**
@@ -107,7 +106,7 @@ public interface ICouplingManager {
      * There is no guarantee of order.
      * <p>
      * If called on the client, it will only contain the passed cart object.
-     * There is no linkage information on the client.
+     * There is no coupling information on the client.
      */
     default Stream<EntityMinecart> streamTrain(EntityMinecart cart) {
         return Stream.empty();

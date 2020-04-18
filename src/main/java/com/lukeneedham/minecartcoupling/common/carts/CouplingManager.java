@@ -20,42 +20,36 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * The LinkageManager contains all the functions needed to link and interacted
- * with linked carts.
+ * Contains all the functions needed to couple and interact with coupled carts.
  * <p/>
- * One concept if import is that of the Linkage Id. Every cart is given a unique
- * identifier by the LinkageManager the first time it encounters the cart.
+ * One concept of import is that of the Coupling Id. Every cart is given a unique
+ * identifier by this class the first time it encounters the cart.
  * <p/>
  * This identifier is stored in the entity's NBT data between world loads so
- * that links are persistent rather than transitory.
+ * that couplings are persistent rather than transitory.
  * <p/>
- * Links are also stored in NBT data as an Integer value that contains the
- * Linkage Id of the cart it is linked to.
+ * Couplings are also stored in NBT data as an Integer value that contains the
+ * Coupling Id of the cart it is coupled to.
  * <p/>
  * Generally you can ignore most of this and use the functions that don't
- * require or return Linkage Ids.
+ * require or return Coupling Ids.
  *
  * @author CovertJaguar <http://www.railcraft.info>
  */
 public enum CouplingManager implements ICouplingManager {
     INSTANCE;
 
-    public static final String LINK_A_HIGH = "rcLinkAHigh";
-    public static final String LINK_A_LOW = "rcLinkALow";
-    public static final String LINK_B_HIGH = "rcLinkBHigh";
-    public static final String LINK_B_LOW = "rcLinkBLow";
-
     public static void printDebug(String msg, Object... args) {
         Game.log().msg(Level.DEBUG, msg, args);
     }
 
     /**
-     * Returns the coupler id of the cart and adds the cart the coupler cache.
+     * Returns the coupling id of the cart and adds the cart the coupling cache.
      *
      * @param cart The EntityMinecart
-     * @return The coupler id
+     * @return The coupling id
      */
-    public UUID getCouplerId(EntityMinecart cart) {
+    public UUID getCouplingId(EntityMinecart cart) {
         return cart.getPersistentID();
     }
 
@@ -70,21 +64,20 @@ public enum CouplingManager implements ICouplingManager {
     }
 
     /**
-     * Returns true if there is nothing preventing the two carts from being
-     * linked.
+     * Returns true if there is nothing preventing the two carts from being coupled.
      *
      * @param cart1 First Cart
      * @param cart2 Second Cart
-     * @return True if can be linked
+     * @return true if can be coupled
      */
-    private boolean canLinkCarts(EntityMinecart cart1, EntityMinecart cart2) {
+    private boolean canCoupleCarts(EntityMinecart cart1, EntityMinecart cart2) {
         if (cart1 == cart2)
             return false;
 
-        if (!hasFreeLink(cart1) || !hasFreeLink(cart2))
+        if (!hasFreeCoupling(cart1) || !hasFreeCoupling(cart2))
             return false;
 
-        if (areLinked(cart1, cart2))
+        if (areCoupled(cart1, cart2))
             return false;
 
         if (cart1.getDistanceSq(cart2) > getCouplableDistanceSq())
@@ -94,152 +87,151 @@ public enum CouplingManager implements ICouplingManager {
     }
 
     /**
-     * Creates a link between two carts, but only if there is nothing preventing
-     * such a link.
+     * Creates a coupling between two carts, but only if there is nothing preventing
+     * such a coupling.
      *
      * @param cart1 First Cart
      * @param cart2 Second Cart
-     * @return True if the link succeeded.
+     * @return True if the coupling succeeded.
      */
     @Override
-    public boolean createLink(EntityMinecart cart1, EntityMinecart cart2) {
-        if (canLinkCarts(cart1, cart2)) {
-            setLinkUnidirectional(cart1, cart2);
-            setLinkUnidirectional(cart2, cart1);
+    public boolean createCoupling(EntityMinecart cart1, EntityMinecart cart2) {
+        if (canCoupleCarts(cart1, cart2)) {
+            setCouplingUnidirectional(cart1, cart2);
+            setCouplingUnidirectional(cart2, cart1);
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean hasFreeLink(EntityMinecart cart) {
-        return Arrays.stream(CouplingType.VALUES).anyMatch(link -> hasFreeLink(cart, link));
+    public boolean hasFreeCoupling(EntityMinecart cart) {
+        return Arrays.stream(CouplingType.VALUES).anyMatch(couplingType -> hasFreeCouple(cart, couplingType));
     }
 
-    public boolean hasFreeLink(EntityMinecart cart, CouplingType type) {
-        return MathTools.isNil(getLink(cart, type));
+    public boolean hasFreeCouple(EntityMinecart cart, CouplingType type) {
+        return MathTools.isNil(getCoupling(cart, type));
     }
 
-    private boolean setLinkUnidirectional(EntityMinecart from, EntityMinecart to) {
-        for (CouplingType link : CouplingType.VALUES) {
-            if (hasFreeLink(from, link)) {
-                setLinkUnidirectional(from, to, link);
+    private boolean setCouplingUnidirectional(EntityMinecart from, EntityMinecart to) {
+        for (CouplingType couplingType : CouplingType.VALUES) {
+            if (hasFreeCouple(from, couplingType)) {
+                setCouplingUnidirectional(from, to, couplingType);
                 return true;
             }
         }
         return false;
     }
 
-    // Note: returns a nil uuid (0) if the link does not exist
-    public UUID getLink(EntityMinecart cart, CouplingType couplingType) {
+    // Note: returns a nil uuid (0) if the coupling does not exist
+    public UUID getCoupling(EntityMinecart cart, CouplingType couplingType) {
         long high = cart.getEntityData().getLong(couplingType.tagHigh);
         long low = cart.getEntityData().getLong(couplingType.tagLow);
         return new UUID(high, low);
     }
 
-    public UUID getLinkA(EntityMinecart cart) {
-        return getLink(cart, CouplingType.LINK_A);
+    public UUID getCouplingA(EntityMinecart cart) {
+        return getCoupling(cart, CouplingType.COUPLING_A);
     }
 
-    public UUID getLinkB(EntityMinecart cart) {
-        return getLink(cart, CouplingType.LINK_B);
+    public UUID getCouplingB(EntityMinecart cart) {
+        return getCoupling(cart, CouplingType.COUPLING_B);
     }
 
-    private void setLinkUnidirectional(EntityMinecart source, EntityMinecart target, CouplingType couplingType) {
-        // hasFreeLink(source, linkType) checked
-        UUID id = getCouplerId(target);
+    private void setCouplingUnidirectional(EntityMinecart source, EntityMinecart target, CouplingType couplingType) {
+        UUID id = getCouplingId(target);
         source.getEntityData().setLong(couplingType.tagHigh, id.getMostSignificantBits());
         source.getEntityData().setLong(couplingType.tagLow, id.getLeastSignificantBits());
     }
 
     /**
-     * Returns the cart linked to LinkType A or null if nothing is currently
-     * occupying LinkType A.
+     * Returns the cart coupled to CouplingType A or null if nothing is currently
+     * occupying CouplingType A.
      *
-     * @param cart The cart for which to get the link
-     * @return The linked cart or null
+     * @param cart The cart for which to get the coupling
+     * @return The coupled cart or null
      */
     @Override
     public @Nullable
-    EntityMinecart getLinkedCartA(EntityMinecart cart) {
-        return getLinkedCart(cart, CouplingType.LINK_A);
+    EntityMinecart getCoupledCartA(EntityMinecart cart) {
+        return getCoupledCart(cart, CouplingType.COUPLING_A);
     }
 
     /**
-     * Returns the cart linked to LinkType B or null if nothing is currently
-     * occupying LinkType B.
+     * Returns the cart coupled to CoupleType B or null if nothing is currently
+     * occupying CoupleType B.
      *
-     * @param cart The cart for which to get the link
-     * @return The linked cart or null
+     * @param cart The cart for which to get the coupling
+     * @return The coupled cart or null
      */
     @Override
     public @Nullable
-    EntityMinecart getLinkedCartB(EntityMinecart cart) {
-        return getLinkedCart(cart, CouplingType.LINK_B);
+    EntityMinecart getCoupledCartB(EntityMinecart cart) {
+        return getCoupledCart(cart, CouplingType.COUPLING_B);
     }
 
     public @Nullable
-    EntityMinecart getLinkedCart(EntityMinecart cart, CouplingType type) {
-        return CartTools.getCartFromUUID(cart.world, getLink(cart, type));
+    EntityMinecart getCoupledCart(EntityMinecart cart, CouplingType type) {
+        return CartTools.getCartFromUUID(cart.world, getCoupling(cart, type));
     }
 
     /**
-     * Returns true if the two carts are linked directly to each other.
+     * Returns true if the two carts are coupled directly to each other.
      *
      * @param cart1 First Cart
      * @param cart2 Second Cart
-     * @return True if linked
+     * @return True if coupled
      */
     @Override
-    public boolean areLinked(EntityMinecart cart1, EntityMinecart cart2) {
-        return areLinked(cart1, cart2, true);
+    public boolean areCoupled(EntityMinecart cart1, EntityMinecart cart2) {
+        return areCoupled(cart1, cart2, true);
     }
 
     /**
-     * Returns true if the two carts are linked directly to each other.
+     * Returns true if the two carts are coupled directly to each other.
      *
      * @param cart1  First Cart
      * @param cart2  Second Cart
-     * @param strict true if both carts should have linking data pointing to the other cart,
+     * @param strict true if both carts should have coupling data pointing to the other cart,
      *               false if its ok if only one cart has the data (this is technically an invalid state, but its been known to happen)
-     * @return True if linked
+     * @return true if coupled
      */
-    public boolean areLinked(EntityMinecart cart1, EntityMinecart cart2, boolean strict) {
+    public boolean areCoupled(EntityMinecart cart1, EntityMinecart cart2, boolean strict) {
         if (cart1 == cart2)
             return false;
 
-        UUID id1 = getCouplerId(cart1);
-        UUID id2 = getCouplerId(cart2);
-        boolean cart1Linked = id2.equals(getLinkA(cart1)) || id2.equals(getLinkB(cart1));
-        boolean cart2Linked = id1.equals(getLinkA(cart2)) || id1.equals(getLinkB(cart2));
+        UUID id1 = getCouplingId(cart1);
+        UUID id2 = getCouplingId(cart2);
+        boolean cart1Coupled = id2.equals(getCouplingA(cart1)) || id2.equals(getCouplingB(cart1));
+        boolean cart2Coupled = id1.equals(getCouplingA(cart2)) || id1.equals(getCouplingB(cart2));
 
-        if (cart1Linked != cart2Linked) {
+        if (cart1Coupled != cart2Coupled) {
             Game.log().msg(Level.WARN,
-                    "Linking discrepancy between carts " +
-                            getCouplerId(cart1) +
+                    "Coupling discrepancy between carts " +
+                            getCouplingId(cart1) +
                             "(" + cart1.getDisplayName() + ") and " +
-                            getCouplerId(cart2) +
+                            getCouplingId(cart2) +
                             "(" + cart2.getDisplayName() + "): The first cart reports " +
-                            cart1Linked + " for linked while the second one reports " + cart2Linked + "!"
+                            cart1Coupled + " for coupled while the second one reports " + cart2Coupled + "!"
             );
         }
 
         if (strict) {
-            return cart1Linked && cart2Linked;
+            return cart1Coupled && cart2Coupled;
         } else {
-            return cart1Linked || cart2Linked;
+            return cart1Coupled || cart2Coupled;
         }
     }
 
     /**
-     * Repairs an asymmetrical link between carts
+     * Repairs an asymmetrical coupling between carts
      *
      * @param cart1 First Cart
      * @param cart2 Second Cart
      * @return true if the repair was successful.
      */
-    public boolean repairLink(EntityMinecart cart1, EntityMinecart cart2) {
-        boolean repaired = repairLinkUnidirectional(cart1, cart2) && repairLinkUnidirectional(cart2, cart1);
+    public boolean repairCoupling(EntityMinecart cart1, EntityMinecart cart2) {
+        boolean repaired = repairCouplingUnidirectional(cart1, cart2) && repairCouplingUnidirectional(cart2, cart1);
         if (repaired)
             Train.repairTrain(cart1, cart2);
         else
@@ -247,101 +239,101 @@ public enum CouplingManager implements ICouplingManager {
         return repaired;
     }
 
-    private boolean repairLinkUnidirectional(EntityMinecart from, EntityMinecart to) {
-        UUID link = getCouplerId(to);
+    private boolean repairCouplingUnidirectional(EntityMinecart from, EntityMinecart to) {
+        UUID coupling = getCouplingId(to);
 
-        return link.equals(getLinkA(from)) || link.equals(getLinkB(from)) || setLinkUnidirectional(from, to);
+        return coupling.equals(getCouplingA(from)) || coupling.equals(getCouplingB(from)) || setCouplingUnidirectional(from, to);
     }
 
     @Override
     public void breakCoupling(EntityMinecart one, EntityMinecart two) {
-        CouplingType linkOne = getLinkType(one, two);
-        CouplingType linkTwo = getLinkType(two, one);
+        CouplingType couplingOne = getCouplingType(one, two);
+        CouplingType couplingTwo = getCouplingType(two, one);
 
-        breakLinkInternal(one, two, linkOne, linkTwo);
+        breakCouplingInternal(one, two, couplingOne, couplingTwo);
     }
 
     @Override
-    public void breakLinks(EntityMinecart cart) {
-        breakLinkA(cart);
-        breakLinkB(cart);
+    public void breakCouplings(EntityMinecart cart) {
+        breakCouplingA(cart);
+        breakCouplingB(cart);
     }
 
     /**
-     * Break only link A.
+     * Break only coupling A.
      *
      * @param cart Cart
      */
-    private void breakLinkA(EntityMinecart cart) {
-        EntityMinecart other = getLinkedCartA(cart);
+    private void breakCouplingA(EntityMinecart cart) {
+        EntityMinecart other = getCoupledCartA(cart);
         if (other == null) {
             return;
         }
 
-        CouplingType otherLink = getLinkType(other, cart);
-        breakLinkInternal(cart, other, CouplingType.LINK_A, otherLink);
+        CouplingType otherCoupling = getCouplingType(other, cart);
+        breakCouplingInternal(cart, other, CouplingType.COUPLING_A, otherCoupling);
     }
 
     /**
-     * Break only link B.
+     * Break only coupling B.
      *
      * @param cart Cart
      */
-    private void breakLinkB(EntityMinecart cart) {
-        EntityMinecart other = getLinkedCartB(cart);
+    private void breakCouplingB(EntityMinecart cart) {
+        EntityMinecart other = getCoupledCartB(cart);
         if (other == null) {
             return;
         }
 
-        CouplingType otherLink = getLinkType(other, cart);
-        breakLinkInternal(cart, other, CouplingType.LINK_B, otherLink);
+        CouplingType otherCoupling = getCouplingType(other, cart);
+        breakCouplingInternal(cart, other, CouplingType.COUPLING_B, otherCoupling);
     }
 
     /**
-     * Breaks a bidirectional link with all the arguments given.
+     * Breaks a bidirectional coupling with all the arguments given.
      * <p>
      * This has the most argument and tries to prevent a recursion.
      *
      * @param one     One of the carts given
-     * @param two     The cart, given or calculated via a link
-     * @param linkOne The link from one, given or calculated
-     * @param linkTwo The link from two, calculated
+     * @param two     The cart, given or calculated via a coupling
+     * @param couplingOne The coupling from one, given or calculated
+     * @param couplingTwo The coupling from two, calculated
      */
-    private void breakLinkInternal(EntityMinecart one, EntityMinecart two, @Nullable CouplingType linkOne, @Nullable CouplingType linkTwo) {
-        if ((linkOne == null) != (linkTwo == null)) {
+    private void breakCouplingInternal(EntityMinecart one, EntityMinecart two, @Nullable CouplingType couplingOne, @Nullable CouplingType couplingTwo) {
+        if ((couplingOne == null) != (couplingTwo == null)) {
             Game.log().msg(Level.WARN,
-                    "Linking discrepancy between carts " +
-                            getCouplerId(one) +
+                    "Coupling discrepancy between carts " +
+                            getCouplingId(one) +
                             "(" + one.getDisplayName() + ") and " +
-                            getCouplerId(two) +
+                            getCouplingId(two) +
                             "(" + two.getDisplayName() + "): The first cart reports " +
-                            (linkOne == null) + " for linked while the second one reports " + (linkTwo == null) + "!"
+                            (couplingOne == null) + " for coupled while the second one reports " + (couplingTwo == null) + "!"
             );
         }
 
-        if (linkOne != null) {
-            breakLinkUnidirectional(one, two, linkOne);
+        if (couplingOne != null) {
+            breakCouplingUnidirectional(one, two, couplingOne);
         }
-        if (linkTwo != null) {
-            breakLinkUnidirectional(two, one, linkTwo);
+        if (couplingTwo != null) {
+            breakCouplingUnidirectional(two, one, couplingTwo);
         }
     }
 
     private @Nullable
-    CouplingType getLinkType(EntityMinecart from, EntityMinecart to) {
-        UUID linkTo = getCouplerId(to);
+    CouplingType getCouplingType(EntityMinecart from, EntityMinecart to) {
+        UUID coupleTo = getCouplingId(to);
         return Arrays.stream(CouplingType.VALUES)
-                .filter(link -> linkTo.equals(getLink(from, link)))
+                .filter(coupling -> coupleTo.equals(getCoupling(from, coupling)))
                 .findFirst().orElse(null);
     }
 
-    private void breakLinkUnidirectional(EntityMinecart cart, EntityMinecart other, CouplingType couplingType) {
-        removeLinkTags(cart, couplingType);
+    private void breakCouplingUnidirectional(EntityMinecart cart, EntityMinecart other, CouplingType couplingType) {
+        removeCouplingTags(cart, couplingType);
 
-        printDebug("Cart {0}({1}) unidirectionally unlinked {2}({3}) at ({4}).", getCouplerId(cart), cart.getDisplayName(), getCouplerId(other), other, couplingType.name());
+        printDebug("Cart {0}({1}) unidirectionally uncoupled {2}({3}) at ({4}).", getCouplingId(cart), cart.getDisplayName(), getCouplingId(other), other, couplingType.name());
     }
 
-    private void removeLinkTags(EntityMinecart cart, CouplingType couplingType) {
+    private void removeCouplingTags(EntityMinecart cart, CouplingType couplingType) {
         cart.getEntityData().removeTag(couplingType.tagHigh);
         cart.getEntityData().removeTag(couplingType.tagLow);
     }
@@ -360,18 +352,5 @@ public enum CouplingManager implements ICouplingManager {
     @Override
     public Stream<EntityMinecart> streamTrain(EntityMinecart cart) {
         return Train.streamCarts(cart);
-    }
-
-    public enum CouplingType {
-        LINK_A(LINK_A_HIGH, LINK_A_LOW),
-        LINK_B(LINK_B_HIGH, LINK_B_LOW);
-        public static final CouplingType[] VALUES = values();
-        public final String tagHigh;
-        public final String tagLow;
-
-        CouplingType(String tagHigh, String tagLow) {
-            this.tagHigh = tagHigh;
-            this.tagLow = tagLow;
-        }
     }
 }

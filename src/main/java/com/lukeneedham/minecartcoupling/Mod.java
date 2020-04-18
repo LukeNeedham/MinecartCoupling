@@ -1,6 +1,6 @@
 package com.lukeneedham.minecartcoupling;
 
-import com.lukeneedham.minecartcoupling.common.carts.LinkageHandler;
+import com.lukeneedham.minecartcoupling.common.carts.CouplingHandler;
 import com.lukeneedham.minecartcoupling.common.carts.MinecartHooks;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraftforge.common.MinecraftForge;
@@ -16,7 +16,7 @@ public class Mod {
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         MinecraftForge.EVENT_BUS.register(MinecartHooks.INSTANCE);
-        MinecraftForge.EVENT_BUS.register(LinkageHandler.getInstance());
+        MinecraftForge.EVENT_BUS.register(CouplingHandler.getInstance());
 
         EntityMinecart.setCollisionHandler(MinecartHooks.INSTANCE);
     }
