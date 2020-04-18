@@ -9,7 +9,7 @@
  -----------------------------------------------------------------------------*/
 package com.lukeneedham.minecartcoupling.common.carts;
 
-import com.lukeneedham.minecartcoupling.common.utils.*;
+import com.lukeneedham.minecartcoupling.common.util.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -27,29 +27,24 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IWorldEventListener;
 import net.minecraft.world.World;
 import net.minecraftforge.common.IMinecartCollisionHandler;
-import net.minecraftforge.event.entity.minecart.MinecartCollisionEvent;
 import net.minecraftforge.event.entity.minecart.MinecartUpdateEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 
 public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListener {
     INSTANCE;
-    // --Commented out by Inspection (3/13/2016 2:18 PM):protected static float DRAG_FACTOR_GROUND = 0.5f;
-    // --Commented out by Inspection (3/13/2016 2:18 PM):protected static float DRAG_FACTOR_AIR = 0.99999f;
     private static final float OPTIMAL_DISTANCE = 1.28f;
-    //    protected static float OPTIMAL_DISTANCE_PLAYER = 1.8f;
     private static final float COEF_SPRING = 0.2f;
     private static final float COEF_SPRING_PLAYER = 0.5f;
     private static final float COEF_RESTITUTION = 0.2f;
     private static final float COEF_DAMPING = 0.4f;
-    // --Commented out by Inspection (3/13/2016 2:18 PM):protected static float ENTITY_REDUCTION = 0.25f;
     private static final float CART_LENGTH = 1.22f;
     private static final float CART_WIDTH = 0.98f;
     private static final float COLLISION_EXPANSION = 0.2f;
-    private static final int MAX_INTERACT_DIST_SQ = 5 * 5;
 
     private static final boolean areCartsSolid = false;
     private static final boolean cartsCollideWithItems = false;
@@ -58,35 +53,12 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
         return cart.getEntityData().getInteger("MountPrevention") <= 0;
     }
 
-//    @SuppressWarnings("unused")
-//    @SubscribeEvent
-//    public void onItemUse(PlayerInteractEvent.RightClickBlock event) {
-//        EntityPlayer player = event.getEntityPlayer();
-//        World world = player.world;
-//        if (Game.isClient(world))
-//            return;
-//
-//        ItemStack itemStack = event.getItemStack();
-//        if (!isEmpty(itemStack)) {
-//            Item item = itemStack.getItem();
-//            if (CartTools.vanillaCartItemMap.containsKey(item)) {
-//                event.setUseItem(Event.Result.DENY);
-//                EntityMinecart placedCart = CartTools.placeCart(
-//                        CartTools.vanillaCartItemMap.get(item),
-//                        player.getGameProfile(), itemStack, world,
-//                        event.getPos());
-//                if (placedCart != null && !player.capabilities.isCreativeMode)
-//                    dec(itemStack);
-//            }
-//        }
-//    }
-
     @Override
     public void onEntityCollision(EntityMinecart cart, Entity other) {
         if (Game.isClient(cart.world) || cart.isPassenger(other) || !other.isEntityAlive() || !cart.isEntityAlive())
             return;
 
-        ILinkageManager lm = LinkageManager.INSTANCE;
+        ICouplingManager lm = CouplingManager.INSTANCE;
         EntityMinecart link = lm.getLinkedCartA(cart);
         if (link != null && (link == other || link.isPassenger(other)))
             return;
@@ -101,7 +73,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
             return;
         }
 
-        //TODO: needs more thought in regards to passenger handling
         if (isLiving && !isPlayer && cart.canBeRidden() && !(other instanceof EntityIronGolem)
                 && cart.motionX * cart.motionX + cart.motionZ * cart.motionZ > 0.001D
                 && !cart.isBeingRidden() && !other.isRiding()) {
@@ -109,7 +80,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
                 other.startRiding(cart);
         }
 
-//        System.out.println(cart.getClass().getSimpleName() + ": " + cart.entityId + " collided with " + other.getClass().getSimpleName() + ": " + other.entityId);
         Vec2D cartPos = new Vec2D(cart.posX, cart.posZ);
         Vec2D otherPos = new Vec2D(other.posX, other.posZ);
 
@@ -160,11 +130,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
                 other.addVelocity(-forceX, 0, -forceZ);
             }
         } else {
-//            if(isPlayer) {
-//                forceX += Math.abs(cart.motionX - other.motionX) / 2;
-//                forceZ += Math.abs(cart.motionZ - other.motionZ) / 2;
-//            }
-//            System.out.printf("forceX=%f, forceZ=%f%n", forceX, forceZ);
             Vec2D cartVel = new Vec2D(cart.motionX + forceX, cart.motionZ + forceZ);
             Vec2D otherVel = new Vec2D(other.motionX - forceX, other.motionZ - forceZ);
 
@@ -176,7 +141,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
             forceX += dampX;
             forceZ += dampZ;
 
-//            System.out.printf("dampX=%f, dampZ=%f%n", dampX, dampZ);
             if (!isPlayer) {
                 other.addVelocity(-forceX, 0.0D, -forceZ);
             }
@@ -186,20 +150,14 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
 
     @Override
     public @Nullable AxisAlignedBB getCollisionBox(EntityMinecart cart, Entity other) {
-//        return null;
-//        if (other instanceof EntityMinecart && Train.areInSameTrain(cart, (EntityMinecart) other))
-//            return null;
-//        if (Train.streamCarts(cart).anyMatch(c -> c.isPassenger(other)))
-//            return null;
-        if (other instanceof EntityItem && cartsCollideWithItems)
+        if (other instanceof EntityItem && cartsCollideWithItems) {
             return other.getEntityBoundingBox().grow(-0.01);
+        }
         return other.canBePushed() ? other.getEntityBoundingBox().grow(-COLLISION_EXPANSION) : null;
     }
 
     @Override
     public AxisAlignedBB getMinecartCollisionBox(EntityMinecart cart) {
-//        return new AxisAlignedBB(0, 0, 0,0,0,0);
-//        return cart.getEntityBoundingBox().expand(MinecartHooks.COLLISION_EXPANSION, 0, MinecartHooks.COLLISION_EXPANSION);
         double yaw = Math.toRadians(cart.rotationYaw);
         double diff = ((CART_LENGTH - CART_WIDTH) / 2.0) + MinecartHooks.COLLISION_EXPANSION;
         double x = diff * Math.abs(Math.cos(yaw));
@@ -209,10 +167,12 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
 
     @Override
     public @Nullable AxisAlignedBB getBoundingBox(EntityMinecart cart) {
-        if (cart == null || cart.isDead)
+        if (cart == null || cart.isDead) {
             return null;
-        if (areCartsSolid)
+        }
+        if (areCartsSolid) {
             return cart.getEntityBoundingBox();
+        }
         return null;
     }
 
@@ -289,55 +249,6 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
 //        }
     }
 
-    @SuppressWarnings("unused")
-    @SubscribeEvent
-    public void onMinecartEntityCollision(MinecartCollisionEvent event) {
-        EntityMinecart cart = event.getMinecart();
-        Entity other = event.getCollider();
-
-        if (other instanceof EntityPlayer && ((EntityPlayer) other).isSpectator())
-            return;
-
-        if (cart.isPassenger(other))
-            return;
-
-        if (other instanceof EntityMinecart)
-            LinkageManager.INSTANCE.tryAutoLink(cart, (EntityMinecart) other);
-    }
-
-//    @SubscribeEvent
-//    public void onMinecartInteract(MinecartInteractEvent event) {
-//        EntityMinecart cart = event.getMinecart();
-//        EntityPlayer player = event.getPlayer();
-//
-//        if (!CartToolsAPI.doesCartHaveOwner(cart))
-//            CartToolsAPI.setCartOwner(cart, player);
-//
-//        if (!(cart instanceof EntityTunnelBore) && player.getDistanceSq(cart) > MAX_INTERACT_DIST_SQ) {
-//            event.setCanceled(true);
-//            return;
-//        }
-//        if (cart.isDead) {
-//            event.setCanceled(true);
-//            return;
-//        }
-//        if (cart.canBeRidden()) {
-//            // Don't try to ride a cart if we are riding something else already
-//            if (player.getRidingEntity() != null && player.getRidingEntity() != cart) {
-//                event.setCanceled(true);
-//                return;
-//            }
-//            // This prevents players from spam clicking to instantly climb elevators stacked with carts
-//            if (player.getRidingEntity() != cart && player.isOnLadder()) {
-//                event.setCanceled(true);
-//                return;
-//            }
-//        }
-//        if (!player.canEntityBeSeen(cart)) {
-//            event.setCanceled(true);
-//        }
-//    }
-
     @SubscribeEvent
     public void onWorldCreate(WorldEvent.Load event) {
         if (Game.isHost(event.getWorld())) {
@@ -352,16 +263,16 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
         if (Game.isHost(entityIn.world) && !entityIn.isEntityAlive() && entityIn instanceof EntityMinecart) {
             // We only mark Trains for deletion here, this event seems to be called from outside the server thread.
             Train.get(((EntityMinecart) entityIn)).ifPresent(Train::kill);
-            LinkageManager.INSTANCE.breakLinks((EntityMinecart) entityIn);
+            CouplingManager.INSTANCE.breakLinks((EntityMinecart) entityIn);
         }
     }
 
     @Override
-    public void notifyBlockUpdate(World worldIn, BlockPos pos, IBlockState oldState, IBlockState newState, int flags) {
+    public void notifyBlockUpdate(@NotNull World worldIn, @NotNull BlockPos pos, @NotNull IBlockState oldState, @NotNull IBlockState newState, int flags) {
     }
 
     @Override
-    public void notifyLightSet(BlockPos pos) {
+    public void notifyLightSet(@NotNull BlockPos pos) {
     }
 
     @Override
@@ -369,35 +280,35 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
     }
 
     @Override
-    public void playSoundToAllNearExcept(@Nullable EntityPlayer player, SoundEvent soundIn, SoundCategory category, double x, double y, double z, float volume, float pitch) {
+    public void playSoundToAllNearExcept(@Nullable EntityPlayer player, @NotNull SoundEvent soundIn, @NotNull SoundCategory category, double x, double y, double z, float volume, float pitch) {
     }
 
     @Override
-    public void playRecord(SoundEvent soundIn, BlockPos pos) {
+    public void playRecord(@NotNull SoundEvent soundIn, @NotNull BlockPos pos) {
     }
 
     @Override
-    public void spawnParticle(int particleID, boolean ignoreRange, double xCoord, double yCoord, double zCoord, double xSpeed, double ySpeed, double zSpeed, int... parameters) {
+    public void spawnParticle(int particleID, boolean ignoreRange, double xCoord, double yCoord, double zCoord, double xSpeed, double ySpeed, double zSpeed, @NotNull int... parameters) {
     }
 
     @Override
-    public void spawnParticle(int id, boolean ignoreRange, boolean p_190570_3_, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, int... parameters) {
+    public void spawnParticle(int id, boolean ignoreRange, boolean p_190570_3_, double x, double y, double z, double xSpeed, double ySpeed, double zSpeed, @NotNull int... parameters) {
     }
 
     @Override
-    public void onEntityAdded(Entity entityIn) {
+    public void onEntityAdded(@NotNull Entity entityIn) {
     }
 
     @Override
-    public void broadcastSound(int soundID, BlockPos pos, int data) {
+    public void broadcastSound(int soundID, @NotNull BlockPos pos, int data) {
     }
 
     @Override
-    public void playEvent(EntityPlayer player, int type, BlockPos blockPosIn, int data) {
+    public void playEvent(@NotNull EntityPlayer player, int type, @NotNull BlockPos blockPosIn, int data) {
     }
 
     @Override
-    public void sendBlockBreakProgress(int breakerId, BlockPos pos, int progress) {
+    public void sendBlockBreakProgress(int breakerId, @NotNull BlockPos pos, int progress) {
     }
 
 }

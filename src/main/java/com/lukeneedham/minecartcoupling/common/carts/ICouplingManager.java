@@ -16,43 +16,20 @@ import java.util.stream.Stream;
  * The LinkageManager contains all the functions needed to link and interact
  * with linked carts.
  * <p/>
- * To obtain an instance of this interface, call {@link CartToolsAPI#linkageManager()}.
- * <p/>
- * Each cart can up to two links. They are called Link A and Link B. Some carts
- * will have only Link A, for example the Tunnel Bore.
+ * Each cart can up to two links. They are called Link A and Link B.
  *
  * @author CovertJaguar <http://www.railcraft.info>
- * @see CartToolsAPI , ILinkableCart
  */
-public interface ILinkageManager {
+public interface ICouplingManager {
 
     /**
      * The default max distance at which carts can be linked, divided by 2.
      */
-    float LINKAGE_DISTANCE = 1.25f;
+    float COUPLABLE_DISTANCE = 1.25f;
     /**
      * The default distance at which linked carts are maintained, divided by 2.
      */
-    float OPTIMAL_DISTANCE = 0.78f;
-
-    /**
-     * Allows or disallows the cart to automatically link to the next cart it collides with.
-     *
-     * @param cart     The minecart
-     * @param autoLink Whether the auto link feature is enabled
-     * @return True if tries to disable link or enable link while there is any free link
-     */
-    default boolean setAutoLink(EntityMinecart cart, boolean autoLink) {
-        return false;
-    }
-
-    default boolean hasAutoLink(EntityMinecart cart) {
-        return false;
-    }
-
-    default boolean tryAutoLink(EntityMinecart cart1, EntityMinecart cart2) {
-        return false;
-    }
+    float OPTIMAL_DISTANCE = 0.665f;
 
     /**
      * Creates a link between two carts, but only if there is nothing preventing
@@ -104,7 +81,7 @@ public interface ILinkageManager {
     /**
      * Breaks a link between two carts, if any link exists.
      */
-    default void breakLink(EntityMinecart cart1, EntityMinecart cart2) {
+    default void breakCoupling(EntityMinecart cart1, EntityMinecart cart2) {
     }
 
     /**
@@ -126,9 +103,9 @@ public interface ILinkageManager {
 
     /**
      * Returns a Stream which will iterate over every cart in the provided cart's train.
-     *
+     * <p>
      * There is no guarantee of order.
-     *
+     * <p>
      * If called on the client, it will only contain the passed cart object.
      * There is no linkage information on the client.
      */

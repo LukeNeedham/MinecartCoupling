@@ -7,19 +7,16 @@
  permission unless otherwise specified on the
  license page at http://railcraft.info/wiki/info:license.
  -----------------------------------------------------------------------------*/
-package com.lukeneedham.minecartcoupling.common.utils;
+package com.lukeneedham.minecartcoupling.common.util;
 
 import com.google.common.collect.Sets;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.launchwrapper.Launch;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.client.FMLClientHandler;
 import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.logging.log4j.Level;
@@ -97,19 +94,9 @@ public final class Game {
     }
 
     @SideOnly(Side.CLIENT)
-    public static @Nullable WorldClient getWorld() {
+    public static @Nullable
+    WorldClient getWorld() {
         return FMLClientHandler.instance().getWorldClient();
-    }
-
-    @SuppressWarnings("SameReturnValue")
-    public static boolean isObfuscated() {
-        return OBFUSCATED;
-    }
-
-    public static ResourceLocation getActiveModResource(String path) {
-        ModContainer mod = Loader.instance().activeModContainer();
-        String modId = mod != null ? mod.getModId() : "unknown";
-        return new ResourceLocation(modId, path);
     }
 
     private Game() {
@@ -140,7 +127,7 @@ public final class Game {
 
         @Override
         public void msg(Level level, Message msg) {
-            LogManager.getLogger("LukeMod").log(level, msg);
+            LogManager.getLogger("MinecartCoupling").log(level, msg);
         }
 
         @Override

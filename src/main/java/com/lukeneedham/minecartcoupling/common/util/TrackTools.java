@@ -7,7 +7,7 @@
  permission unless otherwise specified on the
  license page at http://railcraft.info/wiki/info:license.
  -----------------------------------------------------------------------------*/
-package com.lukeneedham.minecartcoupling.common.utils;
+package com.lukeneedham.minecartcoupling.common.util;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRailBase;
@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"WeakerAccess"})
 public final class TrackTools {
-    public static final int TRAIN_LOCKDOWN_DELAY = 200;
 
     public static boolean isRailBlockAt(IBlockAccess world, BlockPos pos) {
         return isRailBlock(WorldPlugin.getBlock(world, pos));
@@ -89,44 +88,6 @@ public final class TrackTools {
         return false;
     }
 
-    //    public static boolean isTrackAt(IBlockAccess world, BlockPos pos, TrackKits track, Block block) {
-//        return isTrackSpecAt(world, pos, track.getTrackKit(), block);
-//    }
-//
-//    public static boolean isTrackAt(IBlockAccess world, BlockPos pos, TrackKits track) {
-//        return isTrackSpecAt(world, pos, track.getTrackKit());
-//    }
-
-//    public static boolean isTrackSpecAt(IBlockAccess world, BlockPos pos, TrackKit trackKit, Block block) {
-//        if (!RailcraftBlocks.TRACK.isEqual(block))
-//            return false;
-//        TileEntity tile = WorldPlugin.getBlockTile(world, pos);
-//        return isTrackSpec(tile, trackKit);
-//    }
-
-//    public static boolean isTrackSpecAt(IBlockAccess world, BlockPos pos, TrackKit trackKit) {
-//        return isTrackSpecAt(world, pos, trackKit, WorldPlugin.getBlock(world, pos));
-//    }
-
-//    public static boolean isTrackSpec(TileEntity tile, TrackKit trackKit) {
-//        return (tile instanceof TileTrackOutfitted) && ((TileTrackOutfitted) tile).getTrackKitInstance().getTrackKit() == trackKit;
-//    }
-
-//    public static boolean isTrackClassAt(IBlockAccess world, BlockPos pos, Class<? extends ITrackKitInstance> trackClass, Block block) {
-//        if (!RailcraftBlocks.TRACK.isEqual(block))
-//            return false;
-//        TileEntity tile = WorldPlugin.getBlockTile(world, pos);
-//        return isTrackClass(tile, trackClass);
-//    }
-
-//    public static boolean isTrackClassAt(IBlockAccess world, BlockPos pos, Class<? extends ITrackKitInstance> trackClass) {
-//        return isTrackClassAt(world, pos, trackClass, WorldPlugin.getBlock(world, pos));
-//    }
-
-//    public static boolean isTrackClass(TileEntity tile, Class<? extends ITrackKitInstance> trackClass) {
-//        return (tile instanceof TileTrackOutfitted) && trackClass.isAssignableFrom(((TileTrackOutfitted) tile).getTrackKitInstance().getClass());
-//    }
-
     public static void traverseConnectedTracks(World world, BlockPos pos, BiFunction<World, BlockPos, Boolean> action) {
         _traverseConnectedTracks(world, pos, action, new HashSet<>());
     }
@@ -152,7 +113,8 @@ public final class TrackTools {
         return connectedTracks;
     }
 
-    public static @Nullable BlockPos getTrackConnectedTrackAt(IBlockAccess world, BlockPos pos, EnumRailDirection shape) {
+    public static @Nullable
+    BlockPos getTrackConnectedTrackAt(IBlockAccess world, BlockPos pos, EnumRailDirection shape) {
         if (isRailBlockAt(world, pos))
             return pos;
         BlockPos up = pos.up();
@@ -163,18 +125,6 @@ public final class TrackTools {
             return down;
         return null;
     }
-
-//    public static Optional<TileTrackOutfitted> placeTrack(TrackKit track, World world, BlockPos pos, BlockRailBase.EnumRailDirection direction) {
-//        BlockTrackOutfitted block = (BlockTrackOutfitted) RailcraftBlocks.TRACK.block();
-//        TileTrackOutfitted tile = null;
-//        if (block != null) {
-//            WorldPlugin.setBlockState(world, pos, TrackToolsAPI.makeTrackState(block, direction));
-//            tile = TrackTileFactory.makeTrackTile(track);
-//            world.setTileEntity(pos, tile);
-//        }
-//        //noinspection ConstantConditions
-//        return Optional.ofNullable(tile);
-//    }
 
     public static EnumRailDirection getAxisAlignedDirection(Axis axis) {
         switch (axis) {

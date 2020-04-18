@@ -7,7 +7,7 @@
  permission unless otherwise specified on the
  license page at http://railcraft.info/wiki/info:license.
  -----------------------------------------------------------------------------*/
-package com.lukeneedham.minecartcoupling.common.utils;
+package com.lukeneedham.minecartcoupling.common.util;
 
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.Lists;

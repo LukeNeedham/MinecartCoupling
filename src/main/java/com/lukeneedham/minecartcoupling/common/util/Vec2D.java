@@ -7,7 +7,7 @@
  permission unless otherwise specified on the
  license page at http://railcraft.info/wiki/info:license.
  -----------------------------------------------------------------------------*/
-package com.lukeneedham.minecartcoupling.common.utils;
+package com.lukeneedham.minecartcoupling.common.util;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
@@ -77,7 +77,6 @@ public class Vec2D extends Point2D.Double {
         return unit;
     }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public Vec2D clone() {
         return new Vec2D(x, y);

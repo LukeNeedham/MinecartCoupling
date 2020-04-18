@@ -1,31 +1,31 @@
-package com.lukeneedham.minecartcoupling.common.items;
+package com.lukeneedham.minecartcoupling.common.carts;
 
 import com.google.common.collect.MapMaker;
-import com.lukeneedham.minecartcoupling.common.carts.LinkageManager;
-import com.lukeneedham.minecartcoupling.common.utils.Game;
-import com.lukeneedham.minecartcoupling.common.utils.InvTools;
+import com.lukeneedham.minecartcoupling.common.util.Game;
+import com.lukeneedham.minecartcoupling.common.util.InvTools;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.entity.minecart.MinecartInteractEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import org.apache.logging.log4j.Level;
 
 import java.util.Map;
 
 @Mod.EventBusSubscriber()
-public class StringInteractMinecartHandler {
+public class MinecartInteractHandler {
 
-    private static final Map<EntityPlayer, EntityMinecart> linkMap = new MapMaker().weakKeys().weakValues().makeMap();
+    private static final Map<EntityPlayer, EntityMinecart> couplingInProgessMap = new MapMaker().weakKeys().weakValues().makeMap();
 
     @SubscribeEvent
     public static void onMinecartHit(AttackEntityEvent event) {
+
         if (!event.getEntity().world.isRemote) {
             return;
         }
@@ -35,17 +35,19 @@ public class StringInteractMinecartHandler {
             return;
         }
         EntityMinecart minecart = (EntityMinecart) target;
-        LinkageManager lm = LinkageManager.INSTANCE;
+        CouplingManager lm = CouplingManager.INSTANCE;
 
-        EntityMinecart linkedCartA = lm.getLinkedCartA(minecart);
-        EntityMinecart linkedCartB = lm.getLinkedCartB(minecart);
+        EntityMinecart coupledCartA = lm.getLinkedCartA(minecart);
+        EntityMinecart coupledCartB = lm.getLinkedCartB(minecart);
 
-        if (linkedCartA != null) {
-            lm.breakLink(minecart, linkedCartA);
+        if (coupledCartA != null) {
+            event.getEntityPlayer().sendMessage(new TextComponentString("Minecart hit " + coupledCartA.toString()));
+            lm.breakCoupling(minecart, coupledCartA);
             minecart.dropItem(Items.STRING, 1);
         }
-        if (linkedCartB != null) {
-            lm.breakLink(minecart, linkedCartB);
+        if (coupledCartB != null) {
+            event.getEntityPlayer().sendMessage(new TextComponentString("Minecart hit " + coupledCartB.toString()));
+            lm.breakCoupling(minecart, coupledCartB);
             minecart.dropItem(Items.STRING, 1);
         }
     }
@@ -65,17 +67,17 @@ public class StringInteractMinecartHandler {
         }
         event.setCanceled(true);
         EntityMinecart minecart = event.getMinecart();
-        linkCart(event.getPlayer(), event.getHand(), itemStack, minecart, item);
+        linkCart(event.getPlayer(), itemStack, minecart);
     }
 
-    private static void linkCart(EntityPlayer player, EnumHand hand, ItemStack stack, EntityMinecart cart, Item stringItem) {
-        EntityMinecart last = linkMap.remove(player);
+    private static void linkCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
+        EntityMinecart last = couplingInProgessMap.remove(player);
 
         if (last != null && last.isEntityAlive()) {
-            LinkageManager lm = LinkageManager.INSTANCE;
+            CouplingManager lm = CouplingManager.INSTANCE;
             boolean used;
             if (lm.areLinked(cart, last, false)) {
-                lm.breakLink(cart, last);
+                lm.breakCoupling(cart, last);
                 used = true;
                 player.sendMessage(new TextComponentString("Coupling broken"));
                 cart.dropItem(Items.STRING, 1);
@@ -83,14 +85,14 @@ public class StringInteractMinecartHandler {
                 used = lm.createLink(last, cart);
                 if (used) {
                     player.sendMessage(new TextComponentString("Coupling created"));
-                    InvTools.depleteItem(stack);
+                    InvTools.depleteItem(stringStack);
                 }
             }
             if (!used) {
                 player.sendMessage(new TextComponentString("Coupling failed"));
             }
         } else {
-            linkMap.put(player, cart);
+            couplingInProgessMap.put(player, cart);
             player.sendMessage(new TextComponentString("Coupling started"));
         }
     }

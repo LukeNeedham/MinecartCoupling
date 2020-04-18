@@ -1,4 +1,4 @@
-package com.lukeneedham.minecartcoupling.common.utils;
+package com.lukeneedham.minecartcoupling.common.util;
 
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;

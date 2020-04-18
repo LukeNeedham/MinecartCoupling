@@ -9,7 +9,7 @@
  -----------------------------------------------------------------------------*/
 package com.lukeneedham.minecartcoupling.common.carts;
 
-import com.lukeneedham.minecartcoupling.common.utils.Vec2D;
+import com.lukeneedham.minecartcoupling.common.util.Vec2D;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraftforge.event.entity.minecart.MinecartUpdateEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -20,14 +20,9 @@ public final class LinkageHandler {
     public static final double LINK_DRAG = 0.95;
     public static final float MAX_DISTANCE = 8F;
     private static final float STIFFNESS = 0.7F;
-    private static final float HS_STIFFNESS = 0.7F;
-    //    private static final float TRANSFER = 0.15f;
     private static final float DAMPING = 0.4F;
-    private static final float HS_DAMPING = 0.3F;
     private static final float FORCE_LIMITER = 6F;
-    //    private static final int TICK_HISTORY = 200;
     private static LinkageHandler instance;
-//    private static Map<EntityMinecart, CircularVec3Queue> history = new MapMaker().weakKeys().makeMap();
 
     private LinkageHandler() {
     }
@@ -42,12 +37,10 @@ public final class LinkageHandler {
      * Returns the optimal distance between two linked carts that the
      * LinkageHandler will attempt to maintain at all times.
      *
-     * @param cart1 EntityMinecart
-     * @param cart2 EntityMinecart
      * @return The optimal distance
      */
-    private float getOptimalDistance(EntityMinecart cart1, EntityMinecart cart2) {
-        return 2 * ILinkageManager.OPTIMAL_DISTANCE;
+    private float getOptimalDistance() {
+        return 2 * ICouplingManager.OPTIMAL_DISTANCE;
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -62,16 +55,16 @@ public final class LinkageHandler {
      * @param cart1 EntityMinecart
      * @param cart2 EntityMinecart
      */
-    protected void adjustVelocity(EntityMinecart cart1, EntityMinecart cart2, LinkageManager.LinkType linkType) {
+    protected void adjustVelocity(EntityMinecart cart1, EntityMinecart cart2, CouplingManager.CouplingType couplingType) {
         String timer = LINK_A_TIMER;
-        if (linkType == LinkageManager.LinkType.LINK_B)
+        if (couplingType == CouplingManager.CouplingType.LINK_B)
             timer = LINK_B_TIMER;
         if (cart1.world.provider.getDimension() != cart2.world.provider.getDimension()) {
             short count = cart1.getEntityData().getShort(timer);
             count++;
             if (count > 200) {
-                LinkageManager.INSTANCE.breakLink(cart1, cart2);
-                LinkageManager.printDebug("Reason For Broken Link: Carts in different dimensions.");
+                CouplingManager.INSTANCE.breakCoupling(cart1, cart2);
+                CouplingManager.printDebug("Reason For Broken Link: Carts in different dimensions.");
             }
             cart1.getEntityData().setShort(timer, count);
             return;
@@ -80,8 +73,8 @@ public final class LinkageHandler {
 
         double dist = cart1.getDistance(cart2);
         if (dist > MAX_DISTANCE) {
-            LinkageManager.INSTANCE.breakLink(cart1, cart2);
-            LinkageManager.printDebug("Reason For Broken Link: Max distance exceeded.");
+            CouplingManager.INSTANCE.breakCoupling(cart1, cart2);
+            CouplingManager.printDebug("Reason For Broken Link: Max distance exceeded.");
             return;
         }
 
@@ -113,7 +106,7 @@ public final class LinkageHandler {
 
         // Spring force
 
-        float optDist = getOptimalDistance(cart1, cart2);
+        float optDist = getOptimalDistance();
         double stretch = dist - optDist;
 //        stretch = Math.max(0.0, stretch);
 //        if(Math.abs(stretch) > 0.5) {
@@ -176,31 +169,12 @@ public final class LinkageHandler {
         if (isLaunched(cart))
             return;
 
-        boolean linkedA = adjustLinkedCart(cart, LinkageManager.LinkType.LINK_A);
-        boolean linkedB = adjustLinkedCart(cart, LinkageManager.LinkType.LINK_B);
+        boolean linkedA = adjustLinkedCart(cart, CouplingManager.CouplingType.LINK_A);
+        boolean linkedB = adjustLinkedCart(cart, CouplingManager.CouplingType.LINK_B);
         boolean linked = linkedA || linkedB;
 
-        // Centroid
-//        List<BlockPos> points = Train.streamCarts(cart).map(Entity::getPosition).collect(Collectors.toList());
-//        Vec2D centroid = new Vec2D(MathTools.centroid(points));
-//
-//        Vec2D cartPos = new Vec2D(cart);
-//        Vec2D unit = Vec2D.unit(cartPos, centroid);
-//
-//        double amount = 0.2;
-//        double pushX = amount * unit.getX();
-//        double pushZ = amount * unit.getY();
-//
-//        pushX = limitForce(pushX);
-//        pushZ = limitForce(pushZ);
-//
-//        cart.motionX += pushX;
-//        cart.motionZ += pushZ;
-
         // Drag
-        // TODO: Idk if this should be true or false, the name is taken from Railcraft
-        boolean locomotiveModuleEnabled = false;
-        if (linked && locomotiveModuleEnabled) {
+        if (linked) {
             cart.motionX *= LINK_DRAG;
             cart.motionZ *= LINK_DRAG;
         }
@@ -209,100 +183,27 @@ public final class LinkageHandler {
         Train.get(cart).ifPresent(train -> {
             if (train.isTrainEnd(cart)) {
                 train.refreshMaxSpeed();
-//                if (linked && !(cart instanceof EntityLocomotive)) {
-//                    double drag = 0.97;
-//                    cart.motionX *= drag;
-//                    cart.motionZ *= drag;
-//                }
             }
         });
 
     }
 
-    private boolean adjustLinkedCart(EntityMinecart cart, LinkageManager.LinkType linkType) {
+    private boolean adjustLinkedCart(EntityMinecart cart, CouplingManager.CouplingType couplingType) {
         boolean linked = false;
-        LinkageManager lm = LinkageManager.INSTANCE;
-        EntityMinecart link = lm.getLinkedCart(cart, linkType);
+        CouplingManager lm = CouplingManager.INSTANCE;
+        EntityMinecart link = lm.getLinkedCart(cart, couplingType);
         if (link != null) {
             // sanity check to ensure links are consistent
             if (!lm.areLinked(cart, link)) {
-                boolean success = lm.repairLink(cart, link);
-                //TODO something should happen here
+                lm.repairLink(cart, link);
             }
             if (!isLaunched(link) && !isOnElevator()) {
                 linked = true;
-                adjustVelocity(cart, link, linkType);
-//                adjustCartFromHistory(cart, link);
+                adjustVelocity(cart, link, couplingType);
             }
         }
         return linked;
     }
-
-//    /**
-//     * Determines whether a cart is leading another.
-//     *
-//     * @param leader EntityMinecart
-//     * @param follower EntityMinecart
-//     * @return true if leader is leading follower
-//     */
-//    private boolean isCartLeading(EntityMinecart leader, EntityMinecart follower) {
-//        return true; // magic goes here
-//    }
-
-//    /**
-//     * Adjust the current cart's position based on the linked cart its following
-//     * so that it follows the same path at a set distance.
-//     *
-//     * @param current EntityMinecart
-//     * @param linked EntityMinecart
-//     */
-//    private void adjustCartFromHistory(EntityMinecart current, EntityMinecart linked) {
-//        // If we are leading, we don't want to adjust anything
-//        if (isCartLeading(current, linked))
-//            return;
-//
-//        CircularVec3Queue leaderHistory = history.get(linked);
-//
-//        // Optimal distance is how far apart the carts should be
-//        double optimalDist = getOptimalDistance(current, linked);
-//        optimalDist *= optimalDist;
-//
-//        double currentDistance = linked.getDistanceSq(current);
-//
-//        // Search the history for the point closest to the optimal distance.
-//        // There may be some issues with it choosing the wrong side of the cart.
-//        // Probably needs some kind of logic to compare the distance from the
-//        // new position to the current position and determine if its a valid position.
-//        Vec3 closestPoint = null;
-//        Vec3 linkedVec = new Vec3(linked.posX, linked.posY, linked.posZ);
-//        double distance = Math.abs(optimalDist - currentDistance);
-//        for (Vec3 pos : leaderHistory) {
-//            double historyDistance = linkedVec.squareDistanceTo(pos);
-//            double diff = Math.abs(optimalDist - historyDistance);
-//            if (diff < distance) {
-//                closestPoint = pos;
-//                distance = diff;
-//            }
-//        }
-//
-//        // If we found a point closer to our desired distance, move us there
-//        if (closestPoint != null)
-//            current.setPosition(closestPoint.x, closestPoint.y, closestPoint.z);
-//    }
-
-//    /**
-//     * Saved the position history of the cart every tick in a Circular Buffer.
-//     *
-//     * @param cart EntityMinecart
-//     */
-//    private void savePosition(EntityMinecart cart) {
-//        CircularVec3Queue myHistory = history.get(cart);
-//        if (myHistory == null) {
-//            myHistory = new CircularVec3Queue(TICK_HISTORY);
-//            history.put(cart, myHistory);
-//        }
-//        myHistory.add(cart.posX, cart.posY, cart.posZ);
-//    }
 
     /**
      * This is our entry point, its triggered once per tick per cart.
@@ -313,10 +214,7 @@ public final class LinkageHandler {
     public void onMinecartUpdate(MinecartUpdateEvent event) {
         EntityMinecart cart = event.getMinecart();
 
-        // Physics done here
         adjustCart(cart);
-
-//        savePosition(cart);
     }
 
     public boolean isLaunched(EntityMinecart cart) {

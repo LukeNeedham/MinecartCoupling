@@ -9,11 +9,10 @@
  -----------------------------------------------------------------------------*/
 package com.lukeneedham.minecartcoupling.common.carts;
 
-import com.lukeneedham.minecartcoupling.common.utils.CartTools;
-import com.lukeneedham.minecartcoupling.common.utils.Game;
-import com.lukeneedham.minecartcoupling.common.utils.MathTools;
+import com.lukeneedham.minecartcoupling.common.util.CartTools;
+import com.lukeneedham.minecartcoupling.common.util.Game;
+import com.lukeneedham.minecartcoupling.common.util.MathTools;
 import net.minecraft.entity.item.EntityMinecart;
-import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,10 +37,9 @@ import java.util.stream.Stream;
  *
  * @author CovertJaguar <http://www.railcraft.info>
  */
-public enum LinkageManager implements ILinkageManager {
+public enum CouplingManager implements ICouplingManager {
     INSTANCE;
-    public static final String AUTO_LINK_A = "rcAutoLinkA";
-    public static final String AUTO_LINK_B = "rcAutoLinkB";
+
     public static final String LINK_A_HIGH = "rcLinkAHigh";
     public static final String LINK_A_LOW = "rcLinkALow";
     public static final String LINK_B_HIGH = "rcLinkBHigh";
@@ -52,65 +50,23 @@ public enum LinkageManager implements ILinkageManager {
     }
 
     /**
-     * Returns the linkage id of the cart and adds the cart the linkage cache.
+     * Returns the coupler id of the cart and adds the cart the coupler cache.
      *
      * @param cart The EntityMinecart
-     * @return The linkage id
+     * @return The coupler id
      */
-    public UUID getLinkageId(EntityMinecart cart) {
+    public UUID getCouplerId(EntityMinecart cart) {
         return cart.getPersistentID();
     }
 
     /**
-     * Returns the square of the max distance two carts can be and still be
-     * linkable.
+     * Returns the square of the max distance two carts can be and still be couplable.
      *
-     * @return The square of the linkage distance
+     * @return The square of the couplable distance
      */
-    private float getLinkageDistanceSq() {
-        float dist = 2 * LINKAGE_DISTANCE;
+    private float getCouplableDistanceSq() {
+        float dist = 2 * COUPLABLE_DISTANCE;
         return dist * dist;
-    }
-
-    private void removeAutoLinks(EntityMinecart cart) {
-        for (LinkType link : LinkType.VALUES) {
-            cart.getEntityData().removeTag(link.autoLink);
-        }
-    }
-
-    @Override
-    public boolean setAutoLink(EntityMinecart cart, boolean autoLink) {
-        if (autoLink) {
-            boolean ret = false;
-            for (LinkType link : LinkType.VALUES) {
-                if (hasFreeLink(cart, link)) {
-                    cart.getEntityData().setBoolean(link.autoLink, true);
-                    ret = true;
-                    printDebug("Cart {0}({1}) Set To Auto Link on Link {2} With First Collision.", getLinkageId(cart), cart.getDisplayName(), link);
-                }
-            }
-            return ret;
-        } else {
-            removeAutoLinks(cart);
-            return true;
-        }
-    }
-
-    @Override
-    public boolean hasAutoLink(EntityMinecart cart) {
-        if (!hasFreeLink(cart)) // safety check
-            removeAutoLinks(cart);
-        return cart.getEntityData().getBoolean(AUTO_LINK_A) || cart.getEntityData().getBoolean(AUTO_LINK_B);
-    }
-
-    @Override
-    public boolean tryAutoLink(EntityMinecart cart1, EntityMinecart cart2) {
-        if ((hasAutoLink(cart1) || hasAutoLink(cart2))
-                && createLink(cart1, cart2)) {
-            printDebug("Automatically Linked Carts {0}({1}) and {2}({3}).", getLinkageId(cart1), cart1.getDisplayName(), getLinkageId(cart2), cart2.getDisplayName());
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -131,7 +87,7 @@ public enum LinkageManager implements ILinkageManager {
         if (areLinked(cart1, cart2))
             return false;
 
-        if (cart1.getDistanceSq(cart2) > getLinkageDistanceSq())
+        if (cart1.getDistanceSq(cart2) > getCouplableDistanceSq())
             return false;
 
         return !Train.areInSameTrain(cart1, cart2);
@@ -150,8 +106,6 @@ public enum LinkageManager implements ILinkageManager {
         if (canLinkCarts(cart1, cart2)) {
             setLinkUnidirectional(cart1, cart2);
             setLinkUnidirectional(cart2, cart1);
-
-            MinecraftForge.EVENT_BUS.post(new CartLinkEvent.Link(cart1, cart2));
             return true;
         }
         return false;
@@ -159,15 +113,15 @@ public enum LinkageManager implements ILinkageManager {
 
     @Override
     public boolean hasFreeLink(EntityMinecart cart) {
-        return Arrays.stream(LinkType.VALUES).anyMatch(link -> hasFreeLink(cart, link));
+        return Arrays.stream(CouplingType.VALUES).anyMatch(link -> hasFreeLink(cart, link));
     }
 
-    public boolean hasFreeLink(EntityMinecart cart, LinkType type) {
+    public boolean hasFreeLink(EntityMinecart cart, CouplingType type) {
         return MathTools.isNil(getLink(cart, type));
     }
 
     private boolean setLinkUnidirectional(EntityMinecart from, EntityMinecart to) {
-        for (LinkType link : LinkType.VALUES) {
+        for (CouplingType link : CouplingType.VALUES) {
             if (hasFreeLink(from, link)) {
                 setLinkUnidirectional(from, to, link);
                 return true;
@@ -177,26 +131,25 @@ public enum LinkageManager implements ILinkageManager {
     }
 
     // Note: returns a nil uuid (0) if the link does not exist
-    public UUID getLink(EntityMinecart cart, LinkType linkType) {
-        long high = cart.getEntityData().getLong(linkType.tagHigh);
-        long low = cart.getEntityData().getLong(linkType.tagLow);
+    public UUID getLink(EntityMinecart cart, CouplingType couplingType) {
+        long high = cart.getEntityData().getLong(couplingType.tagHigh);
+        long low = cart.getEntityData().getLong(couplingType.tagLow);
         return new UUID(high, low);
     }
 
     public UUID getLinkA(EntityMinecart cart) {
-        return getLink(cart, LinkType.LINK_A);
+        return getLink(cart, CouplingType.LINK_A);
     }
 
     public UUID getLinkB(EntityMinecart cart) {
-        return getLink(cart, LinkType.LINK_B);
+        return getLink(cart, CouplingType.LINK_B);
     }
 
-    private void setLinkUnidirectional(EntityMinecart source, EntityMinecart target, LinkType linkType) {
+    private void setLinkUnidirectional(EntityMinecart source, EntityMinecart target, CouplingType couplingType) {
         // hasFreeLink(source, linkType) checked
-        UUID id = getLinkageId(target);
-        source.getEntityData().setLong(linkType.tagHigh, id.getMostSignificantBits());
-        source.getEntityData().setLong(linkType.tagLow, id.getLeastSignificantBits());
-        source.getEntityData().removeTag(linkType.autoLink); // So we don't need to worry outside
+        UUID id = getCouplerId(target);
+        source.getEntityData().setLong(couplingType.tagHigh, id.getMostSignificantBits());
+        source.getEntityData().setLong(couplingType.tagLow, id.getLeastSignificantBits());
     }
 
     /**
@@ -209,7 +162,7 @@ public enum LinkageManager implements ILinkageManager {
     @Override
     public @Nullable
     EntityMinecart getLinkedCartA(EntityMinecart cart) {
-        return getLinkedCart(cart, LinkType.LINK_A);
+        return getLinkedCart(cart, CouplingType.LINK_A);
     }
 
     /**
@@ -222,11 +175,11 @@ public enum LinkageManager implements ILinkageManager {
     @Override
     public @Nullable
     EntityMinecart getLinkedCartB(EntityMinecart cart) {
-        return getLinkedCart(cart, LinkType.LINK_B);
+        return getLinkedCart(cart, CouplingType.LINK_B);
     }
 
     public @Nullable
-    EntityMinecart getLinkedCart(EntityMinecart cart, LinkType type) {
+    EntityMinecart getLinkedCart(EntityMinecart cart, CouplingType type) {
         return CartTools.getCartFromUUID(cart.world, getLink(cart, type));
     }
 
@@ -255,17 +208,17 @@ public enum LinkageManager implements ILinkageManager {
         if (cart1 == cart2)
             return false;
 
-        UUID id1 = getLinkageId(cart1);
-        UUID id2 = getLinkageId(cart2);
+        UUID id1 = getCouplerId(cart1);
+        UUID id2 = getCouplerId(cart2);
         boolean cart1Linked = id2.equals(getLinkA(cart1)) || id2.equals(getLinkB(cart1));
         boolean cart2Linked = id1.equals(getLinkA(cart2)) || id1.equals(getLinkB(cart2));
 
         if (cart1Linked != cart2Linked) {
             Game.log().msg(Level.WARN,
                     "Linking discrepancy between carts " +
-                            getLinkageId(cart1) +
+                            getCouplerId(cart1) +
                             "(" + cart1.getDisplayName() + ") and " +
-                            getLinkageId(cart2) +
+                            getCouplerId(cart2) +
                             "(" + cart2.getDisplayName() + "): The first cart reports " +
                             cart1Linked + " for linked while the second one reports " + cart2Linked + "!"
             );
@@ -290,20 +243,20 @@ public enum LinkageManager implements ILinkageManager {
         if (repaired)
             Train.repairTrain(cart1, cart2);
         else
-            breakLink(cart1, cart2);
+            breakCoupling(cart1, cart2);
         return repaired;
     }
 
     private boolean repairLinkUnidirectional(EntityMinecart from, EntityMinecart to) {
-        UUID link = getLinkageId(to);
+        UUID link = getCouplerId(to);
 
         return link.equals(getLinkA(from)) || link.equals(getLinkB(from)) || setLinkUnidirectional(from, to);
     }
 
     @Override
-    public void breakLink(EntityMinecart one, EntityMinecart two) {
-        LinkType linkOne = getLinkType(one, two);
-        LinkType linkTwo = getLinkType(two, one);
+    public void breakCoupling(EntityMinecart one, EntityMinecart two) {
+        CouplingType linkOne = getLinkType(one, two);
+        CouplingType linkTwo = getLinkType(two, one);
 
         breakLinkInternal(one, two, linkOne, linkTwo);
     }
@@ -325,8 +278,8 @@ public enum LinkageManager implements ILinkageManager {
             return;
         }
 
-        LinkType otherLink = getLinkType(other, cart);
-        breakLinkInternal(cart, other, LinkType.LINK_A, otherLink);
+        CouplingType otherLink = getLinkType(other, cart);
+        breakLinkInternal(cart, other, CouplingType.LINK_A, otherLink);
     }
 
     /**
@@ -340,8 +293,8 @@ public enum LinkageManager implements ILinkageManager {
             return;
         }
 
-        LinkType otherLink = getLinkType(other, cart);
-        breakLinkInternal(cart, other, LinkType.LINK_B, otherLink);
+        CouplingType otherLink = getLinkType(other, cart);
+        breakLinkInternal(cart, other, CouplingType.LINK_B, otherLink);
     }
 
     /**
@@ -354,13 +307,13 @@ public enum LinkageManager implements ILinkageManager {
      * @param linkOne The link from one, given or calculated
      * @param linkTwo The link from two, calculated
      */
-    private void breakLinkInternal(EntityMinecart one, EntityMinecart two, @Nullable LinkType linkOne, @Nullable LinkType linkTwo) {
+    private void breakLinkInternal(EntityMinecart one, EntityMinecart two, @Nullable CouplingType linkOne, @Nullable CouplingType linkTwo) {
         if ((linkOne == null) != (linkTwo == null)) {
             Game.log().msg(Level.WARN,
                     "Linking discrepancy between carts " +
-                            getLinkageId(one) +
+                            getCouplerId(one) +
                             "(" + one.getDisplayName() + ") and " +
-                            getLinkageId(two) +
+                            getCouplerId(two) +
                             "(" + two.getDisplayName() + "): The first cart reports " +
                             (linkOne == null) + " for linked while the second one reports " + (linkTwo == null) + "!"
             );
@@ -372,26 +325,25 @@ public enum LinkageManager implements ILinkageManager {
         if (linkTwo != null) {
             breakLinkUnidirectional(two, one, linkTwo);
         }
-
-        MinecraftForge.EVENT_BUS.post(new CartLinkEvent.Unlink(one, two));
     }
 
-    private @Nullable LinkType getLinkType(EntityMinecart from, EntityMinecart to) {
-        UUID linkTo = getLinkageId(to);
-        return Arrays.stream(LinkType.VALUES)
+    private @Nullable
+    CouplingType getLinkType(EntityMinecart from, EntityMinecart to) {
+        UUID linkTo = getCouplerId(to);
+        return Arrays.stream(CouplingType.VALUES)
                 .filter(link -> linkTo.equals(getLink(from, link)))
                 .findFirst().orElse(null);
     }
 
-    private void breakLinkUnidirectional(EntityMinecart cart, EntityMinecart other, LinkType linkType) {
-        removeLinkTags(cart, linkType);
+    private void breakLinkUnidirectional(EntityMinecart cart, EntityMinecart other, CouplingType couplingType) {
+        removeLinkTags(cart, couplingType);
 
-        printDebug("Cart {0}({1}) unidirectionally unlinked {2}({3}) at ({4}).", getLinkageId(cart), cart.getDisplayName(), getLinkageId(other), other, linkType.name());
+        printDebug("Cart {0}({1}) unidirectionally unlinked {2}({3}) at ({4}).", getCouplerId(cart), cart.getDisplayName(), getCouplerId(other), other, couplingType.name());
     }
 
-    private void removeLinkTags(EntityMinecart cart, LinkType linkType) {
-        cart.getEntityData().removeTag(linkType.tagHigh);
-        cart.getEntityData().removeTag(linkType.tagLow);
+    private void removeLinkTags(EntityMinecart cart, CouplingType couplingType) {
+        cart.getEntityData().removeTag(couplingType.tagHigh);
+        cart.getEntityData().removeTag(couplingType.tagLow);
     }
 
     /**
@@ -410,74 +362,16 @@ public enum LinkageManager implements ILinkageManager {
         return Train.streamCarts(cart);
     }
 
-    public Iterable<EntityMinecart> linkIterator(final EntityMinecart start, final LinkType type) {
-        if (MathTools.isNil(getLink(start, type))) {
-            return Collections.emptyList();
-        }
-        return () -> new Iterator<EntityMinecart>() {
-            private final LinkageManager lm = INSTANCE;
-            private @Nullable
-            EntityMinecart last;
-            private @Nullable
-            EntityMinecart next;
-            private EntityMinecart current = start;
-
-            /**
-             * Calculates the next minecart. Returns null if it cannot find one.
-             *
-             * @return The next minecart to be returned by the iterator, or null
-             */
-            private @Nullable
-            EntityMinecart calculateNext() {
-                if (last == null) {
-                    return lm.getLinkedCart(current, type);
-                }
-                EntityMinecart cartA = lm.getLinkedCartA(current);
-                if (cartA != null && cartA != last)
-                    return cartA;
-
-                EntityMinecart cartB = lm.getLinkedCartB(current);
-                return cartB == last ? null : cartB;
-            }
-
-            @Override
-            public boolean hasNext() {
-                if (next == null) {
-                    next = calculateNext();
-                }
-                return next != null;
-            }
-
-            @Override
-            public EntityMinecart next() {
-                if (next == null) {
-                    next = calculateNext();
-
-                    if (next == null) {
-                        throw new NoSuchElementException();
-                    }
-                }
-
-                last = current;
-                current = next;
-                next = null;
-                return current;
-            }
-        };
-    }
-
-    public enum LinkType {
-        LINK_A(LINK_A_HIGH, LINK_A_LOW, AUTO_LINK_A),
-        LINK_B(LINK_B_HIGH, LINK_B_LOW, AUTO_LINK_B);
-        public static final LinkType[] VALUES = values();
+    public enum CouplingType {
+        LINK_A(LINK_A_HIGH, LINK_A_LOW),
+        LINK_B(LINK_B_HIGH, LINK_B_LOW);
+        public static final CouplingType[] VALUES = values();
         public final String tagHigh;
         public final String tagLow;
-        public final String autoLink;
 
-        LinkType(String tagHigh, String tagLow, String autoLink) {
+        CouplingType(String tagHigh, String tagLow) {
             this.tagHigh = tagHigh;
             this.tagLow = tagLow;
-            this.autoLink = autoLink;
         }
     }
 }
