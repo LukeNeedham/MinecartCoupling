@@ -1,6 +1,5 @@
 package com.lukeneedham.minecartcoupling.common.carts;
 
-import com.google.common.collect.MapMaker;
 import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.InvTools;
@@ -16,12 +15,20 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Mod.EventBusSubscriber()
 public class MinecartInteractHandler {
 
-    private static final Map<EntityPlayer, EntityMinecart> couplingInProgessMap = new MapMaker().weakKeys().weakValues().makeMap();
+    private static final Map<Integer, EntityMinecart> couplingInProgressMap = new HashMap<>();
+
+    /**
+     * @return the couplings in progress map
+     */
+    public static Map<Integer, EntityMinecart> getCouplingsInProgress() {
+        return couplingInProgressMap;
+    }
 
     @SubscribeEvent
     public static void onMinecartHit(AttackEntityEvent event) {
@@ -71,7 +78,7 @@ public class MinecartInteractHandler {
     // TODO: Instead of printing in chat, indicate these states to the user graphically, with a string entity:
     // See net.minecraft.entity.EntityFishHook and net.minecraft.client.renderer.entity.RenderFish
     private static void coupleCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
-        EntityMinecart last = couplingInProgessMap.remove(player);
+        EntityMinecart last = couplingInProgressMap.remove(player.getEntityId());
 
         if (last != null && last.isEntityAlive()) {
             CouplingManager lm = CouplingManager.INSTANCE;
@@ -92,7 +99,7 @@ public class MinecartInteractHandler {
                 player.sendMessage(new TextComponentString("Coupling failed"));
             }
         } else {
-            couplingInProgessMap.put(player, cart);
+            couplingInProgressMap.put(player.getEntityId(), cart);
             player.sendMessage(new TextComponentString("Coupling started"));
         }
     }
