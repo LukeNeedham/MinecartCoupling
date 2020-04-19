@@ -5,7 +5,7 @@
  see LICENSE.md for details.
  -----------------------------------------------------------------------------*/
 
-package com.lukeneedham.minecartcoupling.common.carts;
+package com.lukeneedham.minecartcoupling.common.carts.coupling;
 
 import net.minecraft.entity.item.EntityMinecart;
 import org.jetbrains.annotations.Nullable;

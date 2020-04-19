@@ -11,6 +11,7 @@ package com.lukeneedham.minecartcoupling.common.carts;
 
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.MapMaker;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
 import com.lukeneedham.minecartcoupling.common.util.CartTools;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.NBTPlugin;

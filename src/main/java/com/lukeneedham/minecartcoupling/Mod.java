@@ -1,7 +1,7 @@
 package com.lukeneedham.minecartcoupling;
 
-import com.lukeneedham.minecartcoupling.common.carts.CouplingHandler;
 import com.lukeneedham.minecartcoupling.common.carts.MinecartHooks;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingHandler;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod.EventHandler;

@@ -1,4 +1,4 @@
-package com.lukeneedham.minecartcoupling.common.carts;
+package com.lukeneedham.minecartcoupling.common.carts.coupling;
 
 public enum CouplingType {
     COUPLING_A(Consts.COUPLING_A_TAG_HIGH, Consts.COUPLING_A_TAG_LOW),

@@ -7,8 +7,9 @@
  permission unless otherwise specified on the
  license page at http://railcraft.info/wiki/info:license.
  -----------------------------------------------------------------------------*/
-package com.lukeneedham.minecartcoupling.common.carts;
+package com.lukeneedham.minecartcoupling.common.carts.coupling;
 
+import com.lukeneedham.minecartcoupling.common.carts.Train;
 import com.lukeneedham.minecartcoupling.common.util.CartTools;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.MathTools;

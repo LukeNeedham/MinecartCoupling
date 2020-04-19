@@ -9,6 +9,8 @@
  -----------------------------------------------------------------------------*/
 package com.lukeneedham.minecartcoupling.common.carts;
 
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.ICouplingManager;
 import com.lukeneedham.minecartcoupling.common.util.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;

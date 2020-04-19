@@ -1,6 +1,7 @@
 package com.lukeneedham.minecartcoupling.common.carts;
 
 import com.google.common.collect.MapMaker;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.InvTools;
 import net.minecraft.entity.Entity;
@@ -68,7 +69,7 @@ public class MinecartInteractHandler {
     }
 
     // TODO: Instead of printing in chat, indicate these states to the user graphically, with a string entity:
-    // See net.minecraft.entity.EntityLeadKnot and net.minecraft.client.renderer.entity.RenderLeashKnot
+    // See net.minecraft.entity.EntityFishHook and net.minecraft.client.renderer.entity.RenderFish
     private static void coupleCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
         EntityMinecart last = couplingInProgessMap.remove(player);
 
