@@ -10,6 +10,7 @@
 package com.lukeneedham.minecartcoupling.common.carts.coupling;
 
 import com.lukeneedham.minecartcoupling.common.carts.Train;
+import com.lukeneedham.minecartcoupling.common.packet.ClientServerCommunication;
 import com.lukeneedham.minecartcoupling.common.util.Vec2D;
 import net.minecraft.entity.item.EntityMinecart;
 import net.minecraftforge.event.entity.minecart.MinecartUpdateEvent;
@@ -40,7 +41,7 @@ public final class CouplingHandler {
      * @return The optimal distance
      */
     private float getOptimalDistance() {
-        return 2 * ICouplingManager.OPTIMAL_DISTANCE;
+        return 2 * ICouplingsDao.OPTIMAL_DISTANCE;
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -63,8 +64,9 @@ public final class CouplingHandler {
             short count = cart1.getEntityData().getShort(timer);
             count++;
             if (count > 200) {
-                CouplingManager.INSTANCE.breakCoupling(cart1, cart2);
-                CouplingManager.printDebug("Reason For Broken Coupling: Carts in different dimensions.");
+                CouplingsDao.SERVER_INSTANCE.breakCoupling(cart1, cart2);
+                ClientServerCommunication.sendCouplingBrokenUpdate(cart1.getEntityId(), cart2.getEntityId());
+                CouplingsDao.printDebug("Reason For Broken Coupling: Carts in different dimensions.");
             }
             cart1.getEntityData().setShort(timer, count);
             return;
@@ -73,8 +75,9 @@ public final class CouplingHandler {
 
         double dist = cart1.getDistance(cart2);
         if (dist > MAX_DISTANCE) {
-            CouplingManager.INSTANCE.breakCoupling(cart1, cart2);
-            CouplingManager.printDebug("Reason For Broken Coupling: Max distance exceeded.");
+            CouplingsDao.SERVER_INSTANCE.breakCoupling(cart1, cart2);
+            ClientServerCommunication.sendCouplingBrokenUpdate(cart1.getEntityId(), cart2.getEntityId());
+            CouplingsDao.printDebug("Reason For Broken Coupling: Max distance exceeded.");
             return;
         }
 
@@ -190,7 +193,7 @@ public final class CouplingHandler {
 
     private boolean adjustCoupledCart(EntityMinecart cart, CouplingType couplingType) {
         boolean coupled = false;
-        CouplingManager lm = CouplingManager.INSTANCE;
+        CouplingsDao lm = CouplingsDao.SERVER_INSTANCE;
         EntityMinecart coupledCart = lm.getCoupledCart(cart, couplingType);
         if (coupledCart != null) {
             // sanity check to ensure couplings are consistent

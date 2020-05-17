@@ -19,7 +19,7 @@ import java.util.stream.Stream;
  *
  * @author CovertJaguar <http://www.railcraft.info>
  */
-public interface ICouplingManager {
+public interface ICouplingsDao {
 
     /**
      * The default max distance at which carts can be coupled, divided by 2.
@@ -36,13 +36,19 @@ public interface ICouplingManager {
      *
      * @return true if the coupling succeeded.
      */
-    default boolean createCoupling(EntityMinecart cart1, EntityMinecart cart2) {
-        return false;
-    }
+    boolean createCoupling(EntityMinecart cart1, EntityMinecart cart2);
 
-    default boolean hasFreeCoupling(EntityMinecart cart) {
-        return false;
-    }
+    /**
+     * Breaks a coupling between two carts, if any coupling exists.
+     */
+    void breakCoupling(EntityMinecart cart1, EntityMinecart cart2);
+
+    /**
+     * Breaks all couplings the cart has.
+     */
+    void breakCouplings(EntityMinecart cart);
+
+    boolean hasFreeCoupling(EntityMinecart cart);
 
     /**
      * Returns the cart coupled to LiConk A or null if nothing is currently
@@ -51,10 +57,8 @@ public interface ICouplingManager {
      * @param cart The cart for which to get the coupling
      * @return The coupled cart or null
      */
-    default @Nullable
-    EntityMinecart getCoupledCartA(EntityMinecart cart) {
-        return null;
-    }
+    @Nullable
+    EntityMinecart getCoupledCartA(EntityMinecart cart);
 
     /**
      * Returns the cart coupled to coupling B or null if nothing is currently
@@ -63,31 +67,15 @@ public interface ICouplingManager {
      * @param cart The cart for which to get the coupling
      * @return The coupled cart or null
      */
-    default @Nullable
-    EntityMinecart getCoupledCartB(EntityMinecart cart) {
-        return null;
-    }
+    @Nullable
+    EntityMinecart getCoupledCartB(EntityMinecart cart);
 
     /**
      * Returns true if the two carts are coupled to each other.
      *
      * @return True if coupled
      */
-    default boolean areCoupled(EntityMinecart cart1, EntityMinecart cart2) {
-        return false;
-    }
-
-    /**
-     * Breaks a coupling between two carts, if any coupling exists.
-     */
-    default void breakCoupling(EntityMinecart cart1, EntityMinecart cart2) {
-    }
-
-    /**
-     * Breaks all couplings the cart has.
-     */
-    default void breakCouplings(EntityMinecart cart) {
-    }
+    boolean areCoupled(EntityMinecart cart1, EntityMinecart cart2);
 
     /**
      * Counts how many carts are in the train.
@@ -96,9 +84,7 @@ public interface ICouplingManager {
      * @return The number of carts in the train
      */
     @SuppressWarnings("unused")
-    default int countCartsInTrain(EntityMinecart cart) {
-        return 0;
-    }
+    int countCartsInTrain(EntityMinecart cart);
 
     /**
      * Returns a Stream which will iterate over every cart in the provided cart's train.
@@ -108,8 +94,6 @@ public interface ICouplingManager {
      * If called on the client, it will only contain the passed cart object.
      * There is no coupling information on the client.
      */
-    default Stream<EntityMinecart> streamTrain(EntityMinecart cart) {
-        return Stream.empty();
-    }
+    Stream<EntityMinecart> streamTrain(EntityMinecart cart);
 
 }

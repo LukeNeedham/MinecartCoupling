@@ -10,6 +10,7 @@
 package com.lukeneedham.minecartcoupling.common.carts.coupling;
 
 import com.lukeneedham.minecartcoupling.common.carts.Train;
+import com.lukeneedham.minecartcoupling.common.packet.ClientServerCommunication;
 import com.lukeneedham.minecartcoupling.common.util.CartTools;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.MathTools;
@@ -17,7 +18,8 @@ import net.minecraft.entity.item.EntityMinecart;
 import org.apache.logging.log4j.Level;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -37,8 +39,8 @@ import java.util.stream.Stream;
  *
  * @author CovertJaguar <http://www.railcraft.info>
  */
-public enum CouplingManager implements ICouplingManager {
-    INSTANCE;
+public enum CouplingsDao implements ICouplingsDao {
+    CLIENT_INSTANCE, SERVER_INSTANCE;
 
     public static void printDebug(String msg, Object... args) {
         Game.log().msg(Level.DEBUG, msg, args);
@@ -52,39 +54,6 @@ public enum CouplingManager implements ICouplingManager {
      */
     public UUID getCouplingId(EntityMinecart cart) {
         return cart.getPersistentID();
-    }
-
-    /**
-     * Returns the square of the max distance two carts can be and still be couplable.
-     *
-     * @return The square of the couplable distance
-     */
-    private float getCouplableDistanceSq() {
-        float dist = 2 * COUPLABLE_DISTANCE;
-        return dist * dist;
-    }
-
-    /**
-     * Returns true if there is nothing preventing the two carts from being coupled.
-     *
-     * @param cart1 First Cart
-     * @param cart2 Second Cart
-     * @return true if can be coupled
-     */
-    private boolean canCoupleCarts(EntityMinecart cart1, EntityMinecart cart2) {
-        if (cart1 == cart2)
-            return false;
-
-        if (!hasFreeCoupling(cart1) || !hasFreeCoupling(cart2))
-            return false;
-
-        if (areCoupled(cart1, cart2))
-            return false;
-
-        if (cart1.getDistanceSq(cart2) > getCouplableDistanceSq())
-            return false;
-
-        return !Train.areInSameTrain(cart1, cart2);
     }
 
     /**
@@ -106,22 +75,26 @@ public enum CouplingManager implements ICouplingManager {
     }
 
     @Override
+    public void breakCoupling(EntityMinecart one, EntityMinecart two) {
+        CouplingType couplingOne = getCouplingType(one, two);
+        CouplingType couplingTwo = getCouplingType(two, one);
+
+        breakCouplingInternal(one, two, couplingOne, couplingTwo);
+    }
+
+    @Override
+    public void breakCouplings(EntityMinecart cart) {
+        breakCouplingA(cart);
+        breakCouplingB(cart);
+    }
+
+    @Override
     public boolean hasFreeCoupling(EntityMinecart cart) {
         return Arrays.stream(CouplingType.VALUES).anyMatch(couplingType -> hasFreeCouple(cart, couplingType));
     }
 
     public boolean hasFreeCouple(EntityMinecart cart, CouplingType type) {
         return MathTools.isNil(getCoupling(cart, type));
-    }
-
-    private boolean setCouplingUnidirectional(EntityMinecart from, EntityMinecart to) {
-        for (CouplingType couplingType : CouplingType.VALUES) {
-            if (hasFreeCouple(from, couplingType)) {
-                setCouplingUnidirectional(from, to, couplingType);
-                return true;
-            }
-        }
-        return false;
     }
 
     // Note: returns a nil uuid (0) if the coupling does not exist
@@ -137,12 +110,6 @@ public enum CouplingManager implements ICouplingManager {
 
     public UUID getCouplingB(EntityMinecart cart) {
         return getCoupling(cart, CouplingType.COUPLING_B);
-    }
-
-    private void setCouplingUnidirectional(EntityMinecart source, EntityMinecart target, CouplingType couplingType) {
-        UUID id = getCouplingId(target);
-        source.getEntityData().setLong(couplingType.tagHigh, id.getMostSignificantBits());
-        source.getEntityData().setLong(couplingType.tagLow, id.getLeastSignificantBits());
     }
 
     /**
@@ -233,31 +200,85 @@ public enum CouplingManager implements ICouplingManager {
      */
     public boolean repairCoupling(EntityMinecart cart1, EntityMinecart cart2) {
         boolean repaired = repairCouplingUnidirectional(cart1, cart2) && repairCouplingUnidirectional(cart2, cart1);
-        if (repaired)
+        if (repaired) {
             Train.repairTrain(cart1, cart2);
-        else
+        }
+        else {
             breakCoupling(cart1, cart2);
+            ClientServerCommunication.sendCouplingBrokenUpdate(cart1.getEntityId(), cart2.getEntityId());
+        }
         return repaired;
+    }
+
+    /**
+     * Counts how many carts are in the train.
+     *
+     * @param cart Any cart in the train
+     * @return The number of carts in the train
+     */
+    @Override
+    public int countCartsInTrain(EntityMinecart cart) {
+        return Train.get(cart).map(Train::size).orElse(1);
+    }
+
+    @Override
+    public Stream<EntityMinecart> streamTrain(EntityMinecart cart) {
+        return Train.streamCarts(cart);
+    }
+
+    /**
+     * Returns the square of the max distance two carts can be and still be couplable.
+     *
+     * @return The square of the couplable distance
+     */
+    private float getCouplableDistanceSq() {
+        float dist = 2 * COUPLABLE_DISTANCE;
+        return dist * dist;
+    }
+
+    /**
+     * Returns true if there is nothing preventing the two carts from being coupled.
+     *
+     * @param cart1 First Cart
+     * @param cart2 Second Cart
+     * @return true if can be coupled
+     */
+    private boolean canCoupleCarts(EntityMinecart cart1, EntityMinecart cart2) {
+        if (cart1 == cart2)
+            return false;
+
+        if (!hasFreeCoupling(cart1) || !hasFreeCoupling(cart2))
+            return false;
+
+        if (areCoupled(cart1, cart2))
+            return false;
+
+        if (cart1.getDistanceSq(cart2) > getCouplableDistanceSq())
+            return false;
+
+        return !Train.areInSameTrain(cart1, cart2);
+    }
+
+    private boolean setCouplingUnidirectional(EntityMinecart from, EntityMinecart to) {
+        for (CouplingType couplingType : CouplingType.VALUES) {
+            if (hasFreeCouple(from, couplingType)) {
+                setCouplingUnidirectional(from, to, couplingType);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void setCouplingUnidirectional(EntityMinecart source, EntityMinecart target, CouplingType couplingType) {
+        UUID id = getCouplingId(target);
+        source.getEntityData().setLong(couplingType.tagHigh, id.getMostSignificantBits());
+        source.getEntityData().setLong(couplingType.tagLow, id.getLeastSignificantBits());
     }
 
     private boolean repairCouplingUnidirectional(EntityMinecart from, EntityMinecart to) {
         UUID coupling = getCouplingId(to);
 
         return coupling.equals(getCouplingA(from)) || coupling.equals(getCouplingB(from)) || setCouplingUnidirectional(from, to);
-    }
-
-    @Override
-    public void breakCoupling(EntityMinecart one, EntityMinecart two) {
-        CouplingType couplingOne = getCouplingType(one, two);
-        CouplingType couplingTwo = getCouplingType(two, one);
-
-        breakCouplingInternal(one, two, couplingOne, couplingTwo);
-    }
-
-    @Override
-    public void breakCouplings(EntityMinecart cart) {
-        breakCouplingA(cart);
-        breakCouplingB(cart);
     }
 
     /**
@@ -295,8 +316,8 @@ public enum CouplingManager implements ICouplingManager {
      * <p>
      * This has the most argument and tries to prevent a recursion.
      *
-     * @param one     One of the carts given
-     * @param two     The cart, given or calculated via a coupling
+     * @param one         One of the carts given
+     * @param two         The cart, given or calculated via a coupling
      * @param couplingOne The coupling from one, given or calculated
      * @param couplingTwo The coupling from two, calculated
      */
@@ -337,21 +358,5 @@ public enum CouplingManager implements ICouplingManager {
     private void removeCouplingTags(EntityMinecart cart, CouplingType couplingType) {
         cart.getEntityData().removeTag(couplingType.tagHigh);
         cart.getEntityData().removeTag(couplingType.tagLow);
-    }
-
-    /**
-     * Counts how many carts are in the train.
-     *
-     * @param cart Any cart in the train
-     * @return The number of carts in the train
-     */
-    @Override
-    public int countCartsInTrain(EntityMinecart cart) {
-        return Train.get(cart).map(Train::size).orElse(1);
-    }
-
-    @Override
-    public Stream<EntityMinecart> streamTrain(EntityMinecart cart) {
-        return Train.streamCarts(cart);
     }
 }

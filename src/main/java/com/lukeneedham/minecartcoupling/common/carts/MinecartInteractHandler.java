@@ -1,6 +1,10 @@
 package com.lukeneedham.minecartcoupling.common.carts;
 
-import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
+import com.google.common.collect.BiMap;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingsDao;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingsInProgressDao;
+import com.lukeneedham.minecartcoupling.common.packet.ClientServerCommunication;
+import com.lukeneedham.minecartcoupling.common.packet.couplingprogress.CouplingProgressState;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.InvTools;
 import net.minecraft.entity.Entity;
@@ -15,44 +19,36 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.annotation.Nullable;
 
 @Mod.EventBusSubscriber()
 public class MinecartInteractHandler {
 
-    private static final Map<Integer, EntityMinecart> couplingInProgressMap = new HashMap<>();
-
-    /**
-     * @return the couplings in progress map
-     */
-    public static Map<Integer, EntityMinecart> getCouplingsInProgress() {
-        return couplingInProgressMap;
-    }
-
     @SubscribeEvent
     public static void onMinecartHit(AttackEntityEvent event) {
 
-//        if (!event.getEntity().world.isRemote) {
-//            return;
-//        }
-
+        if (Game.isClient(event.getEntity().world)) {
+            return;
+        }
         Entity target = event.getTarget();
         if (!(target instanceof EntityMinecart)) {
             return;
         }
+
         EntityMinecart minecart = (EntityMinecart) target;
-        CouplingManager lm = CouplingManager.INSTANCE;
+        CouplingsDao lm = CouplingsDao.SERVER_INSTANCE;
 
         EntityMinecart coupledCartA = lm.getCoupledCartA(minecart);
         EntityMinecart coupledCartB = lm.getCoupledCartB(minecart);
 
         if (coupledCartA != null) {
             lm.breakCoupling(minecart, coupledCartA);
+            ClientServerCommunication.sendCouplingBrokenUpdate(minecart.getEntityId(), coupledCartA.getEntityId());
             minecart.dropItem(Items.STRING, 1);
         }
         if (coupledCartB != null) {
             lm.breakCoupling(minecart, coupledCartB);
+            ClientServerCommunication.sendCouplingBrokenUpdate(minecart.getEntityId(), coupledCartB.getEntityId());
             minecart.dropItem(Items.STRING, 1);
         }
     }
@@ -75,33 +71,45 @@ public class MinecartInteractHandler {
         coupleCart(event.getPlayer(), itemStack, minecart);
     }
 
-    // TODO: Instead of printing in chat, indicate these states to the user graphically, with a string entity:
-    // See net.minecraft.entity.EntityFishHook and net.minecraft.client.renderer.entity.RenderFish
     private static void coupleCart(EntityPlayer player, ItemStack stringStack, EntityMinecart cart) {
-        EntityMinecart last = couplingInProgressMap.remove(player.getEntityId());
+        BiMap<Integer, Integer> couplingInProgressMap = CouplingsInProgressDao.SERVER_INSTANCE.couplingInProgressMap;
+        @Nullable Integer lastId = couplingInProgressMap.remove(player.getEntityId());
 
-        if (last != null && last.isEntityAlive()) {
-            CouplingManager lm = CouplingManager.INSTANCE;
+        EntityMinecart last;
+        if (lastId == null) {
+            last = null;
+        } else {
+            last = (EntityMinecart) cart.world.getEntityByID(lastId);
+        }
+
+        int stateType = -1;
+        if (last == null || !last.isEntityAlive()) {
+            couplingInProgressMap.put(player.getEntityId(), cart.getEntityId());
+
+            stateType = CouplingProgressState.Started.TYPE;
+        } else {
+            CouplingsDao lm = CouplingsDao.SERVER_INSTANCE;
             boolean used;
             if (lm.areCoupled(cart, last, false)) {
                 lm.breakCoupling(cart, last);
+                ClientServerCommunication.sendCouplingBrokenUpdate(cart.getEntityId(), last.getEntityId());
                 used = true;
-                player.sendMessage(new TextComponentString("Coupling broken"));
+                stateType = CouplingProgressState.Broken.TYPE;
                 cart.dropItem(Items.STRING, 1);
             } else {
                 used = lm.createCoupling(last, cart);
+                ClientServerCommunication.sendCouplingCreationUpdate(last.getEntityId(), cart.getEntityId());
                 if (used) {
-                    player.sendMessage(new TextComponentString("Coupling created"));
+                    stateType = CouplingProgressState.Created.TYPE;
                     InvTools.depleteItem(stringStack);
                 }
             }
             if (!used) {
-                player.sendMessage(new TextComponentString("Coupling failed"));
+                stateType = CouplingProgressState.Failed.TYPE;
             }
-        } else {
-            couplingInProgressMap.put(player.getEntityId(), cart);
-            player.sendMessage(new TextComponentString("Coupling started"));
         }
+
+        ClientServerCommunication.sendCouplingProgressState(stateType, cart.getEntityId(), player.getEntityId());
     }
 
 }

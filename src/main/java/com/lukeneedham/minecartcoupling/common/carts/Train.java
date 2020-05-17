@@ -11,7 +11,7 @@ package com.lukeneedham.minecartcoupling.common.carts;
 
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.MapMaker;
-import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingsDao;
 import com.lukeneedham.minecartcoupling.common.util.CartTools;
 import com.lukeneedham.minecartcoupling.common.util.Game;
 import com.lukeneedham.minecartcoupling.common.util.NBTPlugin;
@@ -183,7 +183,7 @@ public final class Train implements Iterable<EntityMinecart> {
         getTrainRaw(next).filter(t -> t != this).ifPresent(Train::kill);
         addTrainTag(next);
 
-        CouplingManager lm = CouplingManager.INSTANCE;
+        CouplingsDao lm = CouplingsDao.SERVER_INSTANCE;
         EntityMinecart coupledCartA = lm.getCoupledCartA(next);
         EntityMinecart coupledCartB = lm.getCoupledCartB(next);
 

@@ -9,8 +9,9 @@
  -----------------------------------------------------------------------------*/
 package com.lukeneedham.minecartcoupling.common.carts;
 
-import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingManager;
-import com.lukeneedham.minecartcoupling.common.carts.coupling.ICouplingManager;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.CouplingsDao;
+import com.lukeneedham.minecartcoupling.common.carts.coupling.ICouplingsDao;
+import com.lukeneedham.minecartcoupling.common.packet.ClientServerCommunication;
 import com.lukeneedham.minecartcoupling.common.util.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -60,7 +61,7 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
         if (Game.isClient(cart.world) || cart.isPassenger(other) || !other.isEntityAlive() || !cart.isEntityAlive())
             return;
 
-        ICouplingManager lm = CouplingManager.INSTANCE;
+        ICouplingsDao lm = CouplingsDao.SERVER_INSTANCE;
         EntityMinecart coupledCartA = lm.getCoupledCartA(cart);
         if (coupledCartA != null && (coupledCartA == other || coupledCartA.isPassenger(other)))
             return;
@@ -247,7 +248,9 @@ public enum MinecartHooks implements IMinecartCollisionHandler, IWorldEventListe
         if (Game.isHost(entityIn.world) && !entityIn.isEntityAlive() && entityIn instanceof EntityMinecart) {
             // We only mark Trains for deletion here, this event seems to be called from outside the server thread.
             Train.get(((EntityMinecart) entityIn)).ifPresent(Train::kill);
-            CouplingManager.INSTANCE.breakCouplings((EntityMinecart) entityIn);
+            EntityMinecart minecart = (EntityMinecart) entityIn;
+            CouplingsDao.SERVER_INSTANCE.breakCouplings(minecart);
+            ClientServerCommunication.sendAllCouplingsBrokenUpdate(minecart.getEntityId());
         }
     }
 

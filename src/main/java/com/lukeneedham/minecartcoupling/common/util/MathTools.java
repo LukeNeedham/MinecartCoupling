@@ -21,7 +21,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class MathTools {
 
     public static final UUID NIL_UUID = new UUID(0, 0);
-    private static final ThreadLocalRandom RAND = ThreadLocalRandom.current();
 
     public static boolean isNil(UUID uuid) {
         return NIL_UUID.equals(uuid);
