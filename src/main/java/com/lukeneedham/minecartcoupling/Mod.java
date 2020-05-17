@@ -12,7 +12,6 @@ import net.minecraft.entity.item.EntityMinecart;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
@@ -20,7 +19,7 @@ import net.minecraftforge.fml.relauncher.Side;
 public class Mod {
     public static final String MOD_ID = "minecartcoupling";
     public static final String NAME = "Minecart Coupling";
-    public static final String VERSION = "0.1.5";
+    public static final String VERSION = "0.1.6";
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {

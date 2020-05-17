@@ -1,2 +1,4 @@
 This mod borrows very heavily from RailCraft 1.12.2, so all relevant credit to them:
 http://www.railcraft.info/
+
+When you update the version code, do it in both build.gradle and Mod.java

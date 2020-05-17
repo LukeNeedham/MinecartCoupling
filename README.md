@@ -34,3 +34,9 @@ Whenever a coupling is destroyed, it will drop the piece of string used in the c
 1. Punching a minecart once will destroy all its couplings.
 2. Tying 2 minecarts together which are already coupled will instead remove the existing coupling.
 3. Destroying a minecart will also destroy all its couplings.
+
+#Requirements
+
+Requires Minecraft 1.12.2.
+
+Requires Minecraft Forge 14.23.5.2847 or newer.

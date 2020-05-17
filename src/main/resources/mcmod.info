@@ -1,14 +1,14 @@
 [
 {
-  "modid": "examplemod",
-  "name": "Example Mod",
-  "description": "Example placeholder mod.",
+  "modid": "minecartcoupling",
+  "name": "Minecart Coupling",
+  "description": "Tie minecarts together!",
   "version": "${version}",
   "mcversion": "${mcversion}",
-  "url": "",
+  "url": "https://github.com/LukeNeedham/MinecartCoupling",
   "updateUrl": "",
-  "authorList": ["ExampleDude"],
-  "credits": "The Forge and FML guys, for making this example",
+  "authorList": ["Luke Needham"],
+  "credits": "Many thanks to Railcraft, for working out the physics",
   "logoFile": "",
   "screenshots": [],
   "dependencies": []
