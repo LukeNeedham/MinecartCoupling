@@ -1,10 +1,10 @@
-#Minecart Coupling
+# Minecart Coupling
 
 This mod allows you to tie minecarts together with string, so that they move together as a train.
 
 Demo: https://youtu.be/mSGwBlwE4MA
 
-#Why this mod?
+# Why this mod?
 
 Unlike vanilla "merged minecarts" (https://minecraft.gamepedia.com/Minecart), this mod makes minecart coupling:
 
@@ -18,7 +18,7 @@ The physics of minecart coupling are taken from Railcraft (https://github.com/Ra
 However, unlike Railcraft, this mod is is intentionally small. It does not add any items, blocks, or recipes.
 All it does is change (some might say fix) minecart physics, so that they can be coupled together reliably.
 
-#How to couple minecarts:
+# How to couple minecarts:
 
 1. Ensure the minecarts are close enough together. Trying to tie 2 Minecarts together will fail if they are too far away from eachother.
 2. Hold a piece of string.
@@ -27,7 +27,7 @@ All it does is change (some might say fix) minecart physics, so that they can be
 5. ???
 6. Profit. Your 2 minecarts will now be coupled. The piece of string will be consumed, and the minecarts will move to be at coupled distance from eachother.
 
-#How to uncouple minecarts:
+# How to uncouple minecarts:
 
 Whenever a coupling is destroyed, it will drop the piece of string used in the coupling. Use one of the following options:
 
@@ -35,7 +35,7 @@ Whenever a coupling is destroyed, it will drop the piece of string used in the c
 2. Tying 2 minecarts together which are already coupled will instead remove the existing coupling.
 3. Destroying a minecart will also destroy all its couplings.
 
-#Requirements
+# Requirements
 
 Requires Minecraft 1.12.2.
 
